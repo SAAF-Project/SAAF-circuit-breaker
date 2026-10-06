@@ -1,7 +1,7 @@
-"""Host the actual live app inside the GitHub Pages entrypoint.
+"""Open the real live app directly; avoid fragile cross-origin iframe paint.
 
-The tunnel is explicitly temporary and needs an awake, connected backend host.
-No application credentials are copied into this static entrypoint.
+Both origins remain temporary and require an awake, connected backend host.
+No application credentials are copied into these static launch pages.
 """
 from pathlib import Path
 from urllib.parse import urlparse
@@ -11,14 +11,33 @@ import json
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / 'docs'
 config = json.loads((DOCS / 'live-origin.json').read_text())
-origin = config['origin'].rstrip('/')
-url = urlparse(origin)
-assert url.scheme == 'https' and url.hostname and not url.username and not url.password
+
+
+def launcher(origin, label):
+    target = origin.rstrip('/') + '/'
+    url = urlparse(target)
+    if url.scheme != 'https' or not url.hostname or url.username or url.password:
+        raise ValueError('A public HTTPS app origin without credentials is required')
+    escaped = html.escape(target, quote=True)
+    javascript = json.dumps(target).replace('<', '\\u003c')
+    return f'''<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAAF Circuit Breaker — {html.escape(label)}</title>
+<meta http-equiv="refresh" content="1; url={escaped}">
+<meta name="description" content="Open the actual live SAAF Circuit Breaker application directly.">
+<style>body{{margin:0;padding:32px;background:#07080c;color:#ece7dc;font:16px/1.6 system-ui,sans-serif}}main{{max-width:720px;margin:12vh auto}}a{{color:#3ee0c5}}h1{{font-size:28px}}p{{overflow-wrap:anywhere}}</style>
+</head><body data-saaf-live-app="direct"><main><h1>Opening SAAF Circuit Breaker</h1>
+<p><a href="{escaped}">Open the {html.escape(label.lower())} now →</a></p>
+<p>This opens the actual app directly, without an embedded frame. The temporary backend must stay awake and connected.</p>
+<p><a href="original.html">Original version</a> · <a href="guide.html">Presenter notes, video and evidence</a></p>
+</main><script>window.location.replace({javascript});</script></body></html>'''
+
+
 index = DOCS / 'index.html'
 current = index.read_text()
 if 'data-saaf-live-app' not in current:
     (DOCS / 'guide.html').write_text(current)
-source = html.escape(origin, quote=True)
-page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="The actual SAAF Circuit Breaker live seven-page application, served through a temporary public judging tunnel."><title>SAAF Circuit Breaker — Live Build</title><style>*{{box-sizing:border-box}}html,body{{margin:0;width:100%;height:100%;background:#07080c;color:#ece7dc;font:12px system-ui,sans-serif}}aside{{height:36px;display:flex;align-items:center;gap:15px;justify-content:space-between;padding:0 14px;border-bottom:1px solid #253340}}a{{color:#3ee0c5}}iframe{{width:100%;height:calc(100% - 36px);border:0;display:block}}@media(max-width:650px){{aside{{height:58px;flex-wrap:wrap;gap:3px;padding:5px 10px}}iframe{{height:calc(100% - 58px)}}}} </style></head><body data-saaf-live-app="true"><aside><span>LIVE LOCAL BUILD · Temporary tunnel · Host must stay awake</span><span><a href="{source}/" target="_blank" rel="noopener">Open full-screen</a> · <a href="original.html">Original version</a> · <a href="guide.html">Script &amp; evidence</a></span></aside><iframe title="SAAF Circuit Breaker live application" src="{source}/" allow="clipboard-write; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe><noscript>The app needs JavaScript. <a href="{source}/">Open the actual live build</a>.</noscript></body></html>'''
-index.write_text(page)
-print('Live Pages entrypoint generated:', origin)
+index.write_text(launcher(config['origin'], 'Live build'))
+if config.get('original_origin'):
+    (DOCS / 'original.html').write_text(launcher(config['original_origin'], 'Original build'))
+print('Direct live launch pages generated:', config['origin'])

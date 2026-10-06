@@ -1,5 +1,6 @@
 {
   "origin": "https://develop-produce-flip-medications.trycloudflare.com",
+  "original_origin": "https://sir-generators-directors-river.trycloudflare.com",
   "mode": "live-app-through-temporary-tunnel",
   "backend": "The simplified candidate Next.js app on 127.0.0.1:3191 with PostgreSQL and server-side Jev; original retained on 3189",
   "uptime": "Requires the backend Mac to remain awake and connected; not permanent cloud hosting"
