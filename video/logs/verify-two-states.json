@@ -1,0 +1,26 @@
+{
+  "status": "completed",
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/verify-silent.mp4",
+  "dry_run": false,
+  "verified": true,
+  "summary": {
+    "duration_s": 9.8,
+    "width": 1920,
+    "height": 1080,
+    "fps": 29.898,
+    "vcodec": "h264",
+    "acodec": "aac",
+    "channels": 2
+  },
+  "commands": 1,
+  "mode": "video",
+  "skipped": [],
+  "pending": [],
+  "silent": [],
+  "short_segments": [],
+  "duplicates": [],
+  "clips": 2,
+  "transition": "none",
+  "expected_duration": 9.8,
+  "dropped_non_av_streams": false
+}

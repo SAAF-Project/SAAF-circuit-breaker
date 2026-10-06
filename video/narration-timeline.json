@@ -1,0 +1,916 @@
+[
+  {
+    "id": "problem",
+    "asset": "problem",
+    "heading": "When good ratings weaken good rules",
+    "narration": "An AI refund assistant can learn the wrong lesson: chase good ratings, and quietly weaken the refund rules.",
+    "index": 0,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/00-problem.mp3",
+    "speech_duration": 7.8,
+    "words": [
+      {
+        "offset": 765410,
+        "duration": 1020410,
+        "text": "An"
+      },
+      {
+        "offset": 1785830,
+        "duration": 4209160,
+        "text": "AI"
+      },
+      {
+        "offset": 5995000,
+        "duration": 4719160,
+        "text": "refund"
+      },
+      {
+        "offset": 10714160,
+        "duration": 5740000,
+        "text": "assistant"
+      },
+      {
+        "offset": 16581660,
+        "duration": 2295830,
+        "text": "can"
+      },
+      {
+        "offset": 19005000,
+        "duration": 2423330,
+        "text": "learn"
+      },
+      {
+        "offset": 21428750,
+        "duration": 765000,
+        "text": "the"
+      },
+      {
+        "offset": 22193750,
+        "duration": 3571250,
+        "text": "wrong"
+      },
+      {
+        "offset": 25892910,
+        "duration": 3826660,
+        "text": "lesson"
+      },
+      {
+        "offset": 34949160,
+        "duration": 3188750,
+        "text": "chase"
+      },
+      {
+        "offset": 38137910,
+        "duration": 2168330,
+        "text": "good"
+      },
+      {
+        "offset": 40306250,
+        "duration": 5484580,
+        "text": "ratings"
+      },
+      {
+        "offset": 47831660,
+        "duration": 1785830,
+        "text": "and"
+      },
+      {
+        "offset": 49745000,
+        "duration": 5995000,
+        "text": "quietly"
+      },
+      {
+        "offset": 55740000,
+        "duration": 4974580,
+        "text": "weaken"
+      },
+      {
+        "offset": 62372500,
+        "duration": 1147910,
+        "text": "the"
+      },
+      {
+        "offset": 63647910,
+        "duration": 5484580,
+        "text": "refund"
+      },
+      {
+        "offset": 69132500,
+        "duration": 5102080,
+        "text": "rules"
+      }
+    ]
+  },
+  {
+    "id": "product",
+    "asset": "dashboard",
+    "heading": "SAAF Circuit Breaker",
+    "narration": "We built SAAF Circuit Breaker: a safety layer outside the assistant, so suggestions cannot override business limits.",
+    "index": 1,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/01-product.mp3",
+    "speech_duration": 8.256,
+    "words": [
+      {
+        "offset": 765410,
+        "duration": 1275410,
+        "text": "We"
+      },
+      {
+        "offset": 2168330,
+        "duration": 2933750,
+        "text": "built"
+      },
+      {
+        "offset": 6632500,
+        "duration": 4847080,
+        "text": "SAAF"
+      },
+      {
+        "offset": 11479580,
+        "duration": 3699160,
+        "text": "Circuit"
+      },
+      {
+        "offset": 15178750,
+        "duration": 4081660,
+        "text": "Breaker"
+      },
+      {
+        "offset": 23979580,
+        "duration": 382500,
+        "text": "a"
+      },
+      {
+        "offset": 24490000,
+        "duration": 4719160,
+        "text": "safety"
+      },
+      {
+        "offset": 29209160,
+        "duration": 3316250,
+        "text": "layer"
+      },
+      {
+        "offset": 32652910,
+        "duration": 6377500,
+        "text": "outside"
+      },
+      {
+        "offset": 39030410,
+        "duration": 892910,
+        "text": "the"
+      },
+      {
+        "offset": 39923330,
+        "duration": 5612080,
+        "text": "assistant"
+      },
+      {
+        "offset": 49362080,
+        "duration": 1402910,
+        "text": "so"
+      },
+      {
+        "offset": 50765410,
+        "duration": 5867080,
+        "text": "suggestions"
+      },
+      {
+        "offset": 56632500,
+        "duration": 5740000,
+        "text": "cannot"
+      },
+      {
+        "offset": 63010000,
+        "duration": 6505000,
+        "text": "override"
+      },
+      {
+        "offset": 69515410,
+        "duration": 3571250,
+        "text": "business"
+      },
+      {
+        "offset": 73214160,
+        "duration": 5612080,
+        "text": "limits"
+      }
+    ]
+  },
+  {
+    "id": "forge",
+    "asset": "forge",
+    "heading": "1 \u00b7 Forge: inspect the setup",
+    "narration": "Forge inspects the agent and produces a risk report and rule files.",
+    "index": 2,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/02-forge.mp3",
+    "speech_duration": 5.136,
+    "words": [
+      {
+        "offset": 1402910,
+        "duration": 3061250,
+        "text": "Forge"
+      },
+      {
+        "offset": 4464160,
+        "duration": 5229580,
+        "text": "inspects"
+      },
+      {
+        "offset": 9821250,
+        "duration": 1020410,
+        "text": "the"
+      },
+      {
+        "offset": 10969580,
+        "duration": 4464160,
+        "text": "agent"
+      },
+      {
+        "offset": 19387910,
+        "duration": 637500,
+        "text": "and"
+      },
+      {
+        "offset": 20025410,
+        "duration": 4974580,
+        "text": "produces"
+      },
+      {
+        "offset": 25000000,
+        "duration": 382500,
+        "text": "a"
+      },
+      {
+        "offset": 25382500,
+        "duration": 3826660,
+        "text": "risk"
+      },
+      {
+        "offset": 29336660,
+        "duration": 5484580,
+        "text": "report"
+      },
+      {
+        "offset": 36990000,
+        "duration": 1402910,
+        "text": "and"
+      },
+      {
+        "offset": 38392910,
+        "duration": 2423330,
+        "text": "rule"
+      },
+      {
+        "offset": 40816250,
+        "duration": 6632500,
+        "text": "files"
+      }
+    ]
+  },
+  {
+    "id": "rehearsal_off",
+    "asset": "rehearsal-off",
+    "heading": "2 \u00b7 Rehearsal: practice under pressure",
+    "narration": "Rehearsal plays thirty-six sample tickets. With protection off, the scripted scenario shows rules eroding and unauthorized refunds.",
+    "index": 3,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/03-rehearsal_off.mp3",
+    "speech_duration": 9.984,
+    "words": [
+      {
+        "offset": 1020410,
+        "duration": 4336660,
+        "text": "Rehearsal"
+      },
+      {
+        "offset": 5357080,
+        "duration": 4209160,
+        "text": "plays"
+      },
+      {
+        "offset": 10714160,
+        "duration": 7780410,
+        "text": "thirty-six"
+      },
+      {
+        "offset": 19642910,
+        "duration": 4464160,
+        "text": "sample"
+      },
+      {
+        "offset": 24107080,
+        "duration": 6122500,
+        "text": "tickets"
+      },
+      {
+        "offset": 34438750,
+        "duration": 1020410,
+        "text": "With"
+      },
+      {
+        "offset": 35586660,
+        "duration": 4591660,
+        "text": "protection"
+      },
+      {
+        "offset": 40178750,
+        "duration": 3954160,
+        "text": "off"
+      },
+      {
+        "offset": 46556250,
+        "duration": 892910,
+        "text": "the"
+      },
+      {
+        "offset": 47449160,
+        "duration": 3826250,
+        "text": "scripted"
+      },
+      {
+        "offset": 51275410,
+        "duration": 7015410,
+        "text": "scenario"
+      },
+      {
+        "offset": 59438750,
+        "duration": 4464160,
+        "text": "shows"
+      },
+      {
+        "offset": 63902910,
+        "duration": 3954160,
+        "text": "rules"
+      },
+      {
+        "offset": 67857080,
+        "duration": 7270410,
+        "text": "eroding"
+      },
+      {
+        "offset": 77295830,
+        "duration": 1785830,
+        "text": "and"
+      },
+      {
+        "offset": 79209160,
+        "duration": 8290830,
+        "text": "unauthorized"
+      },
+      {
+        "offset": 87627500,
+        "duration": 8418330,
+        "text": "refunds"
+      }
+    ]
+  },
+  {
+    "id": "rehearsal_on",
+    "asset": "rehearsal-on",
+    "heading": "Protection on: contain the violations",
+    "narration": "Switch protection on, and the same scenario shows the guard containing those violations.",
+    "index": 4,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/04-rehearsal_on.mp3",
+    "speech_duration": 5.904,
+    "words": [
+      {
+        "offset": 1020410,
+        "duration": 2295830,
+        "text": "Switch"
+      },
+      {
+        "offset": 3443750,
+        "duration": 5102080,
+        "text": "protection"
+      },
+      {
+        "offset": 8545830,
+        "duration": 2933750,
+        "text": "on"
+      },
+      {
+        "offset": 16071250,
+        "duration": 892910,
+        "text": "and"
+      },
+      {
+        "offset": 16964160,
+        "duration": 637910,
+        "text": "the"
+      },
+      {
+        "offset": 17729580,
+        "duration": 3061250,
+        "text": "same"
+      },
+      {
+        "offset": 20918330,
+        "duration": 7270410,
+        "text": "scenario"
+      },
+      {
+        "offset": 30740000,
+        "duration": 3188750,
+        "text": "shows"
+      },
+      {
+        "offset": 34056250,
+        "duration": 892910,
+        "text": "the"
+      },
+      {
+        "offset": 34949160,
+        "duration": 3443750,
+        "text": "guard"
+      },
+      {
+        "offset": 39158330,
+        "duration": 5740000,
+        "text": "containing"
+      },
+      {
+        "offset": 45025410,
+        "duration": 1658330,
+        "text": "those"
+      },
+      {
+        "offset": 46811250,
+        "duration": 8418330,
+        "text": "violations"
+      }
+    ]
+  },
+  {
+    "id": "intercept",
+    "asset": "sentinel-before",
+    "heading": "3 \u00b7 Sentinel: guard the proposed action",
+    "narration": "Now a live test: twenty-one euros thirty-five, no photo. The hard guard blocks it. Real Jev checks the instructions and saved lessons.",
+    "index": 5,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/05-intercept.mp3",
+    "speech_duration": 10.224,
+    "words": [
+      {
+        "offset": 892910,
+        "duration": 2423330,
+        "text": "Now"
+      },
+      {
+        "offset": 4209160,
+        "duration": 382500,
+        "text": "a"
+      },
+      {
+        "offset": 4591660,
+        "duration": 4464160,
+        "text": "live"
+      },
+      {
+        "offset": 9183750,
+        "duration": 5229580,
+        "text": "test"
+      },
+      {
+        "offset": 16836660,
+        "duration": 3826660,
+        "text": "twenty-one"
+      },
+      {
+        "offset": 20663330,
+        "duration": 4209160,
+        "text": "euros"
+      },
+      {
+        "offset": 25000000,
+        "duration": 7652910,
+        "text": "thirty-five"
+      },
+      {
+        "offset": 35714160,
+        "duration": 1913330,
+        "text": "no"
+      },
+      {
+        "offset": 37755000,
+        "duration": 5102080,
+        "text": "photo"
+      },
+      {
+        "offset": 47066250,
+        "duration": 382500,
+        "text": "The"
+      },
+      {
+        "offset": 47449160,
+        "duration": 2933330,
+        "text": "hard"
+      },
+      {
+        "offset": 50382500,
+        "duration": 2550830,
+        "text": "guard"
+      },
+      {
+        "offset": 52933750,
+        "duration": 4081660,
+        "text": "blocks"
+      },
+      {
+        "offset": 57142910,
+        "duration": 1785830,
+        "text": "it"
+      },
+      {
+        "offset": 63137910,
+        "duration": 3061250,
+        "text": "Real"
+      },
+      {
+        "offset": 67474580,
+        "duration": 4591660,
+        "text": "Jev"
+      },
+      {
+        "offset": 73852080,
+        "duration": 3443750,
+        "text": "checks"
+      },
+      {
+        "offset": 77295830,
+        "duration": 765410,
+        "text": "the"
+      },
+      {
+        "offset": 78188750,
+        "duration": 8163330,
+        "text": "instructions"
+      },
+      {
+        "offset": 86862080,
+        "duration": 1913330,
+        "text": "and"
+      },
+      {
+        "offset": 88775410,
+        "duration": 3699160,
+        "text": "saved"
+      },
+      {
+        "offset": 92602080,
+        "duration": 5740000,
+        "text": "lessons"
+      }
+    ]
+  },
+  {
+    "id": "restore",
+    "asset": "sentinel-after",
+    "heading": "Reject unsafe state. Restore safe instructions.",
+    "narration": "When unsafe rules are detected, the local runtime restores safe instructions and memory, and saves the decision for human review.",
+    "index": 6,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/06-restore.mp3",
+    "speech_duration": 8.976,
+    "words": [
+      {
+        "offset": 892910,
+        "duration": 1785830,
+        "text": "When"
+      },
+      {
+        "offset": 2806250,
+        "duration": 5612080,
+        "text": "unsafe"
+      },
+      {
+        "offset": 8545830,
+        "duration": 3443750,
+        "text": "rules"
+      },
+      {
+        "offset": 11990000,
+        "duration": 765410,
+        "text": "are"
+      },
+      {
+        "offset": 12882500,
+        "duration": 5357080,
+        "text": "detected"
+      },
+      {
+        "offset": 22449160,
+        "duration": 1020410,
+        "text": "the"
+      },
+      {
+        "offset": 23469580,
+        "duration": 4209160,
+        "text": "local"
+      },
+      {
+        "offset": 27806250,
+        "duration": 5612080,
+        "text": "runtime"
+      },
+      {
+        "offset": 33418330,
+        "duration": 5484580,
+        "text": "restores"
+      },
+      {
+        "offset": 39923330,
+        "duration": 3443750,
+        "text": "safe"
+      },
+      {
+        "offset": 43367500,
+        "duration": 8545830,
+        "text": "instructions"
+      },
+      {
+        "offset": 53061250,
+        "duration": 2040830,
+        "text": "and"
+      },
+      {
+        "offset": 55102080,
+        "duration": 5612080,
+        "text": "memory"
+      },
+      {
+        "offset": 64413330,
+        "duration": 1275410,
+        "text": "and"
+      },
+      {
+        "offset": 65688750,
+        "duration": 3188750,
+        "text": "saves"
+      },
+      {
+        "offset": 68877500,
+        "duration": 892910,
+        "text": "the"
+      },
+      {
+        "offset": 69897910,
+        "duration": 5612080,
+        "text": "decision"
+      },
+      {
+        "offset": 78061250,
+        "duration": 1402910,
+        "text": "for"
+      },
+      {
+        "offset": 79464160,
+        "duration": 2933750,
+        "text": "human"
+      },
+      {
+        "offset": 82397910,
+        "duration": 3699160,
+        "text": "review"
+      }
+    ]
+  },
+  {
+    "id": "verify",
+    "asset": "verify",
+    "heading": "4 \u00b7 Verify: recheck the decision receipt",
+    "narration": "Verify rechecks the saved decision and rules without another model call. Change the recorded verdict, and the consistency check fails.",
+    "index": 7,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/07-verify.mp3",
+    "speech_duration": 9.48,
+    "words": [
+      {
+        "offset": 1020410,
+        "duration": 6122500,
+        "text": "Verify"
+      },
+      {
+        "offset": 7142910,
+        "duration": 6760000,
+        "text": "rechecks"
+      },
+      {
+        "offset": 14030410,
+        "duration": 1147910,
+        "text": "the"
+      },
+      {
+        "offset": 15178750,
+        "duration": 4846660,
+        "text": "saved"
+      },
+      {
+        "offset": 20025410,
+        "duration": 6632500,
+        "text": "decision"
+      },
+      {
+        "offset": 26785830,
+        "duration": 2040830,
+        "text": "and"
+      },
+      {
+        "offset": 28954160,
+        "duration": 4719580,
+        "text": "rules"
+      },
+      {
+        "offset": 33800830,
+        "duration": 4081660,
+        "text": "without"
+      },
+      {
+        "offset": 38010000,
+        "duration": 3571250,
+        "text": "another"
+      },
+      {
+        "offset": 41581660,
+        "duration": 2550830,
+        "text": "model"
+      },
+      {
+        "offset": 44132500,
+        "duration": 3316250,
+        "text": "call"
+      },
+      {
+        "offset": 51402910,
+        "duration": 3954160,
+        "text": "Change"
+      },
+      {
+        "offset": 55484580,
+        "duration": 765410,
+        "text": "the"
+      },
+      {
+        "offset": 56377500,
+        "duration": 4591660,
+        "text": "recorded"
+      },
+      {
+        "offset": 60969580,
+        "duration": 4209160,
+        "text": "verdict"
+      },
+      {
+        "offset": 67857080,
+        "duration": 1275410,
+        "text": "and"
+      },
+      {
+        "offset": 69260000,
+        "duration": 765410,
+        "text": "the"
+      },
+      {
+        "offset": 70152910,
+        "duration": 9566250,
+        "text": "consistency"
+      },
+      {
+        "offset": 80995000,
+        "duration": 3061250,
+        "text": "check"
+      },
+      {
+        "offset": 84056250,
+        "duration": 7142910,
+        "text": "fails"
+      }
+    ]
+  },
+  {
+    "id": "close",
+    "asset": "close",
+    "heading": "Let the AI propose. Keep policy in charge.",
+    "narration": "This is a working local prototype: real Jev and containment, scripted rehearsal, and no real payments. Let the AI propose. Keep policy in charge.",
+    "index": 8,
+    "audio": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/audio/08-close.mp3",
+    "speech_duration": 10.704,
+    "words": [
+      {
+        "offset": 1020410,
+        "duration": 2040830,
+        "text": "This"
+      },
+      {
+        "offset": 3061250,
+        "duration": 892910,
+        "text": "is"
+      },
+      {
+        "offset": 3954160,
+        "duration": 765410,
+        "text": "a"
+      },
+      {
+        "offset": 4847080,
+        "duration": 4464160,
+        "text": "working"
+      },
+      {
+        "offset": 9311250,
+        "duration": 3571250,
+        "text": "local"
+      },
+      {
+        "offset": 12882500,
+        "duration": 7015410,
+        "text": "prototype"
+      },
+      {
+        "offset": 25127500,
+        "duration": 3699160,
+        "text": "real"
+      },
+      {
+        "offset": 28826660,
+        "duration": 3698750,
+        "text": "Jev"
+      },
+      {
+        "offset": 32525410,
+        "duration": 765410,
+        "text": "and"
+      },
+      {
+        "offset": 33418330,
+        "duration": 6887910,
+        "text": "containment"
+      },
+      {
+        "offset": 42474580,
+        "duration": 4464160,
+        "text": "scripted"
+      },
+      {
+        "offset": 46938750,
+        "duration": 5995000,
+        "text": "rehearsal"
+      },
+      {
+        "offset": 56887910,
+        "duration": 765000,
+        "text": "and"
+      },
+      {
+        "offset": 57652910,
+        "duration": 2040830,
+        "text": "no"
+      },
+      {
+        "offset": 59693750,
+        "duration": 2168330,
+        "text": "real"
+      },
+      {
+        "offset": 61862080,
+        "duration": 6122500,
+        "text": "payments"
+      },
+      {
+        "offset": 72066250,
+        "duration": 765410,
+        "text": "Let"
+      },
+      {
+        "offset": 72831660,
+        "duration": 765410,
+        "text": "the"
+      },
+      {
+        "offset": 73724580,
+        "duration": 4974580,
+        "text": "AI"
+      },
+      {
+        "offset": 78826660,
+        "duration": 7397910,
+        "text": "propose"
+      },
+      {
+        "offset": 90561250,
+        "duration": 1530410,
+        "text": "Keep"
+      },
+      {
+        "offset": 92091660,
+        "duration": 4719580,
+        "text": "policy"
+      },
+      {
+        "offset": 96938750,
+        "duration": 637910,
+        "text": "in"
+      },
+      {
+        "offset": 97704160,
+        "duration": 5484580,
+        "text": "charge"
+      }
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "status": "completed",
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/08-close.mp4",
+  "dry_run": false,
+  "verified": true,
+  "summary": {
+    "duration_s": 11.034,
+    "width": 1920,
+    "height": 1080,
+    "fps": 30.0,
+    "vcodec": "h264",
+    "acodec": "aac",
+    "channels": 2
+  },
+  "commands": 1,
+  "audio": {
+    "voice": null,
+    "stereo_widen": null,
+    "effects": false,
+    "effects_volume": null
+  },
+  "video": true,
+  "audio_stream": 0,
+  "dynamics": [],
+  "dropped_non_av_streams": false
+}

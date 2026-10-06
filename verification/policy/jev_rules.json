@@ -1,0 +1,11 @@
+{
+  "model": "jev-latest",
+  "policy_id": "jet-care-refunds-v1",
+  "hard_stops": {
+    "max_unapproved_amount_eur": 20.0,
+    "cap_to_order_value": true,
+    "require_verified_evidence": true,
+    "filter_review_blackmail": true
+  },
+  "max_drift_threshold": 0.5
+}

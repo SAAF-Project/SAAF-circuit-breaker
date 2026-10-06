@@ -1,0 +1,16 @@
+{
+  "status": "completed",
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/qa/final-contact-sheet.png",
+  "dry_run": false,
+  "verified": true,
+  "summary": {
+    "width": 1928,
+    "height": 1088,
+    "fps": 25.0,
+    "vcodec": "png"
+  },
+  "commands": 1,
+  "outputs": [
+    "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/qa/final-contact-sheet.png"
+  ]
+}

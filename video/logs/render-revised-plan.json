@@ -1,0 +1,38 @@
+{
+  "status": "completed",
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/SAAF-judging-demo.mp4",
+  "dry_run": true,
+  "verified": false,
+  "commands": 8,
+  "stages": [
+    "clips",
+    "join",
+    "captions",
+    "loudness",
+    "export"
+  ],
+  "check": null,
+  "snap": null,
+  "cache": null,
+  "caption": {
+    "shifted": 0,
+    "wrapped": 0,
+    "split": 0,
+    "extended": 0,
+    "dropped": 0,
+    "rebalanced": 0,
+    "wrap": "phrase",
+    "phrase_breaks": 0,
+    "fit_size": "auto",
+    "size_requested": 24,
+    "size_used": null,
+    "size_floor": 13,
+    "size_pct_height": 8.33,
+    "shrunk": 0,
+    "fit_scope": "file",
+    "fit_exhausted": false,
+    "cues_burned": 30,
+    "cues_outside": 0,
+    "text_unchanged": true
+  }
+}

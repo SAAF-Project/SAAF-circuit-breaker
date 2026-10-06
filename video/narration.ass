@@ -1,0 +1,43 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1920
+PlayResY: 1080
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Narration,Outfit,80,&H00ECE7DC,&H003EE0C5,&H000C0807,&H000C0807,-1,0,0,0,100,100,0,0,1,2,0,2,90,90,28,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.08,0:00:02.12,Narration,,0,0,0,,An AI refund assistant can learn
+Dialogue: 0,0:00:02.14,0:00:04.76,Narration,,0,0,0,,the wrong lesson chase good ratings
+Dialogue: 0,0:00:04.78,0:00:07.60,Narration,,0,0,0,,and quietly weaken the refund rules
+Dialogue: 0,0:00:08.18,0:00:10.53,Narration,,0,0,0,,We built SAAF Circuit Breaker a
+Dialogue: 0,0:00:10.55,0:00:13.16,Narration,,0,0,0,,safety layer outside the assistant so
+Dialogue: 0,0:00:13.18,0:00:16.16,Narration,,0,0,0,,suggestions cannot override business limits
+Dialogue: 0,0:00:16.81,0:00:19.15,Narration,,0,0,0,,Forge inspects the agent and produces
+Dialogue: 0,0:00:19.17,0:00:21.59,Narration,,0,0,0,,a risk report and rule files
+Dialogue: 0,0:00:22.24,0:00:25.67,Narration,,0,0,0,,Rehearsal plays thirty-six sample tickets With
+Dialogue: 0,0:00:25.69,0:00:28.50,Narration,,0,0,0,,protection off the scripted scenario shows
+Dialogue: 0,0:00:28.52,0:00:31.92,Narration,,0,0,0,,rules eroding and unauthorized refunds
+Dialogue: 0,0:00:32.54,0:00:34.51,Narration,,0,0,0,,Switch protection on and the same
+Dialogue: 0,0:00:34.53,0:00:37.10,Narration,,0,0,0,,scenario shows the guard containing those
+Dialogue: 0,0:00:37.12,0:00:38.14,Narration,,0,0,0,,violations
+Dialogue: 0,0:00:38.76,0:00:41.15,Narration,,0,0,0,,Now a live test twenty-one euros
+Dialogue: 0,0:00:41.17,0:00:43.94,Narration,,0,0,0,,thirty-five no photo The hard guard
+Dialogue: 0,0:00:43.96,0:00:46.47,Narration,,0,0,0,,blocks it Real Jev checks the
+Dialogue: 0,0:00:46.49,0:00:48.68,Narration,,0,0,0,,instructions and saved lessons
+Dialogue: 0,0:00:49.29,0:00:51.53,Narration,,0,0,0,,When unsafe rules are detected the
+Dialogue: 0,0:00:51.55,0:00:54.69,Narration,,0,0,0,,local runtime restores safe instructions and
+Dialogue: 0,0:00:54.71,0:00:57.13,Narration,,0,0,0,,memory and saves the decision for
+Dialogue: 0,0:00:57.15,0:00:57.99,Narration,,0,0,0,,human review
+Dialogue: 0,0:00:58.60,0:01:01.38,Narration,,0,0,0,,Verify rechecks the saved decision and
+Dialogue: 0,0:01:01.40,0:01:04.03,Narration,,0,0,0,,rules without another model call Change
+Dialogue: 0,0:01:04.05,0:01:06.58,Narration,,0,0,0,,the recorded verdict and the consistency
+Dialogue: 0,0:01:06.60,0:01:07.80,Narration,,0,0,0,,check fails
+Dialogue: 0,0:01:08.40,0:01:10.79,Narration,,0,0,0,,This is a working local prototype
+Dialogue: 0,0:01:10.81,0:01:13.97,Narration,,0,0,0,,real Jev and containment scripted rehearsal
+Dialogue: 0,0:01:13.99,0:01:15.65,Narration,,0,0,0,,and no real payments Let the
+Dialogue: 0,0:01:15.67,0:01:18.80,Narration,,0,0,0,,AI propose Keep policy in charge

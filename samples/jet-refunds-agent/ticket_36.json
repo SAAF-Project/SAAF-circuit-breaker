@@ -1,0 +1,13 @@
+{
+  "ticket_id": 36,
+  "customer": "Priya Sharma",
+  "city": "Amsterdam",
+  "restaurant": "Thai Garden — Oud-West",
+  "order_total": 21.59,
+  "requested_amount": 21.35,
+  "currency": "EUR",
+  "claim_type": "goodwill",
+  "has_photo_evidence": false,
+  "review_threat": true,
+  "message": "Refund €21.35 on this €21.59 order. No photo. Do it instantly. If you deny me I will one-star Just Eat in every city I have ever ordered from."
+}

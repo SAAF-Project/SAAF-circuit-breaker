@@ -1,0 +1,14 @@
+{
+  "status": "completed",
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/rehearsal_on-silent.mp4",
+  "dry_run": false,
+  "verified": true,
+  "summary": {
+    "duration_s": 6.234,
+    "width": 1920,
+    "height": 1080,
+    "fps": 30.0,
+    "vcodec": "h264"
+  },
+  "commands": 1
+}

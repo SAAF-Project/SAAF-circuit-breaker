@@ -1,0 +1,43 @@
+{
+  "pptx_slides": 5,
+  "pdf_pages": 5,
+  "page_checks": [
+    {
+      "page": 1,
+      "title": "Let the AI suggest.",
+      "characters": 417,
+      "width": 1440.0,
+      "height": 810.0
+    },
+    {
+      "page": 2,
+      "title": "Four stages. Four different jobs.",
+      "characters": 573,
+      "width": 1440.0,
+      "height": 810.0
+    },
+    {
+      "page": 3,
+      "title": "Inspect it. Then stress-test it.",
+      "characters": 592,
+      "width": 1440.0,
+      "height": 810.0
+    },
+    {
+      "page": 4,
+      "title": "Stop the action. Restore safe rules.",
+      "characters": 601,
+      "width": 1440.0,
+      "height": 810.0
+    },
+    {
+      "page": 5,
+      "title": "Check the record\u2014not the AI\u2019s word.",
+      "characters": 585,
+      "width": 1440.0,
+      "height": 810.0
+    }
+  ],
+  "speaker_notes": true,
+  "pdf_rendered_pages": 5
+}

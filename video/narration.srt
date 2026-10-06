@@ -1,0 +1,119 @@
+1
+00:00:00,077 --> 00:00:02,123
+An AI refund assistant can learn
+
+2
+00:00:02,143 --> 00:00:04,763
+the wrong lesson chase good ratings
+
+3
+00:00:04,783 --> 00:00:07,603
+and quietly weaken the refund rules
+
+4
+00:00:08,177 --> 00:00:10,529
+We built SAAF Circuit Breaker a
+
+5
+00:00:10,549 --> 00:00:13,157
+safety layer outside the assistant so
+
+6
+00:00:13,177 --> 00:00:16,163
+suggestions cannot override business limits
+
+7
+00:00:16,807 --> 00:00:19,147
+Forge inspects the agent and produces
+
+8
+00:00:19,167 --> 00:00:21,592
+a risk report and rule files
+
+9
+00:00:22,236 --> 00:00:25,673
+Rehearsal plays thirty-six sample tickets With
+
+10
+00:00:25,693 --> 00:00:28,504
+protection off the scripted scenario shows
+
+11
+00:00:28,524 --> 00:00:31,919
+rules eroding and unauthorized refunds
+
+12
+00:00:32,536 --> 00:00:34,506
+Switch protection on and the same
+
+13
+00:00:34,526 --> 00:00:37,095
+scenario shows the guard containing those
+
+14
+00:00:37,115 --> 00:00:38,137
+violations
+
+15
+00:00:38,757 --> 00:00:41,148
+Now a live test twenty-one euros
+
+16
+00:00:41,168 --> 00:00:43,941
+thirty-five no photo The hard guard
+
+17
+00:00:43,961 --> 00:00:46,467
+blocks it Real Jev checks the
+
+18
+00:00:46,487 --> 00:00:48,682
+instructions and saved lessons
+
+19
+00:00:49,291 --> 00:00:51,529
+When unsafe rules are detected the
+
+20
+00:00:51,549 --> 00:00:54,692
+local runtime restores safe instructions and
+
+21
+00:00:54,712 --> 00:00:57,128
+memory and saves the decision for
+
+22
+00:00:57,148 --> 00:00:57,992
+human review
+
+23
+00:00:58,604 --> 00:01:01,377
+Verify rechecks the saved decision and
+
+24
+00:01:01,397 --> 00:01:04,030
+rules without another model call Change
+
+25
+00:01:04,050 --> 00:01:06,582
+the recorded verdict and the consistency
+
+26
+00:01:06,602 --> 00:01:07,802
+check fails
+
+27
+00:01:08,404 --> 00:01:10,795
+This is a working local prototype
+
+28
+00:01:10,815 --> 00:01:13,971
+real Jev and containment scripted rehearsal
+
+29
+00:01:13,991 --> 00:01:15,654
+and no real payments Let the
+
+30
+00:01:15,674 --> 00:01:18,801
+AI propose Keep policy in charge

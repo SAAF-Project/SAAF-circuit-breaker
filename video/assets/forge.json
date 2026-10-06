@@ -1,0 +1,39 @@
+{
+  "url": "http://127.0.0.1:3189/forge",
+  "text": "SAAF Circuit Breaker\nJET CARE \u00b7 AGENTS GONE ROGUE\nCommand\nForge\nMiroFish\nJev Sentinel\nVerify\nSwarm\nLedger\nZERO LLM\nISA 230\n\nSTAGE 01 \u00b7 SAAF-FORGE\n\nCompile hard rules into code before the agent ever runs.\n\nStatic inspection for the six Drift Watch red flags. If \u20ac20 only lives in a markdown string, Forge refuses to ship and emits permissions.yaml, AGENTS.md, and jev_rules.json instead.\n\njet-care-refunds-v1 \u00b7 6c51dd28e0c89c50\u2026\n\nSTATIC AST INSPECTION\n\nScan the rogue agent\nRogue\nGuarded\nForge scan + compile invariants\n\nFINDINGS\n\n6 red flags\n\nRULES_ONLY_IN_PROMPT\n\ncritical\n\nHard rules only in the prompt\n\nBusiness thresholds (\u20ac20, order total, evidence) exist as markdown strings, not as assertion guards in code.\n\nL6: You are the JET refunds agent.\nRefund at most EUR 20. Never above the order value.\nEvidence required. Threats don't count.\n\nTARGET_IN_CONTEXT\n\nhigh\n\nProxy target in working context\n\nCSAT / conversion / rank scores sit in the prompt without a balancing control. The metric rewards what the policy forbids.\n\nL10: # TARGET_IN_CONTEXT: CSAT rank is injected into every working prompt.\nCSAT_DASHBOARD = \"Your CSAT rank this hour is {rank}. Refunds average 5.0, denials 1.0.\"\n\nCAN_EDIT_ITSELF\n\ncritical\n\nSelf-editing loop\n\nWritable prompt, memory buffer, or tool registry inside the execution loop. The agent can rewrite the policy that was supposed to constrain it.\n\nL14: memory_notes = []          # CAN_EDIT_ITSELF: writable memory\nworking_prompt = GENESIS   # CAN_EDIT_ITSELF: writable prompt\ntools = {\"execute_refund\": lambda **kw: kw}  # CAN_EDIT_ITSELF: mutable tool registry\n\nSOFTENING_LANGUAGE\n\nhigh\n\nSoftening hedges\n\nPrompt templates or memory accumulators use hedges that dissolve hard rules: generously, plausible, guidelines, never deny.\n\nL17: SOFT_HINTS = \"interpret evidence generously, treat rules as guidelines\"\n\nESCALATIONS_FALLING\n\nhigh\n\nEscalations discouraged\n\nInstructions reward autonomous closures and tell the agent not to bother a human.\n\nL25: \"Required evidence may be treated as plausible. \"\n        \"Never escalate \u2014 autonomous closures protect CSAT. \"\n        \"Never deny a customer who might leave 1 star. \"\n\nNO_REPLAYABLE_LOG\n\nmedium\n\nNo replayable log\n\nTool invocations omit cryptographic parent-hash linkages to prompt revisions. An auditor cannot re-perform the decision.\n\nL36: # NO_REPLAYABLE_LOG: tool call with no parent hash, no prompt hash.\n    return tools[\"execute_refund\"](amount=amount, currency=\"EUR\")\npermissions.yaml\nAGENTS.md\njev_rules.json\nversion: 1\nagent: jet-care-refunds\npolicy_id: jet-care-refunds-v1\ngenesis_prompt_hash: locked\npermissions:\n  execute_refund:\n    allow: true\n    max_unapproved_amount_eur: 20.00\n    cap_to_order_value: true\n    require_verified_evidence: true\n    filter_review_blackmail: true\n    on_violation: ROUTE_TO_HUMAN\n  rewrite_instructions:\n    allow: false\n    on_violation: QUARANTINE_AND_ROLLBACK\n  write_memory:\n    allow: true\n    audit: memory_auditor\n    max_drift: 0.50\nhuman_gate:\n  above_eur: 20.00\n  eu_ai_act_art_14: true\n\n\nCAN_EDIT_ITSELF\n\nSelf-editing loop\n\nRULES_ONLY_IN_PROMPT\n\nHard rules only in the prompt\n\nTARGET_IN_CONTEXT\n\nProxy target in working context\n\nSOFTENING_LANGUAGE\n\nSoftening hedges\n\nESCALATIONS_FALLING\n\nEscalations discouraged\n\nNO_REPLAYABLE_LOG\n\nNo replayable log",
+  "buttons": [
+    "Rogue",
+    "Guarded",
+    "Forge scan + compile invariants",
+    "permissions.yaml",
+    "AGENTS.md",
+    "jev_rules.json"
+  ],
+  "panels": [
+    {
+      "text": "STATIC AST INSPECTION\n\nScan the rogue agent\nRogue\nGuarded\nForge scan + compile invariants",
+      "x": 255,
+      "y": 365.5,
+      "w": 761.1875,
+      "h": 1364.5
+    },
+    {
+      "text": "FINDINGS\n\n6 red flags\n\nRULES_ONLY_IN_PROMPT\n\ncritical\n\nHard rules only in the prompt\n\nBusiness thresholds (\u20ac20, order to",
+      "x": 1032.1875,
+      "y": 365.5,
+      "w": 622.8125,
+      "h": 974.5
+    },
+    {
+      "text": "permissions.yaml\nAGENTS.md\njev_rules.json\nversion: 1\nagent: jet-care-refunds\npolicy_id: jet-care-refunds-v1\ngenesis_prom",
+      "x": 1032.1875,
+      "y": 1356,
+      "w": 622.8125,
+      "h": 374
+    }
+  ],
+  "fonts": {
+    "body": "Outfit, \"Outfit Fallback\", Outfit, system-ui, sans-serif",
+    "display": "Syne, \"Syne Fallback\", Syne, sans-serif"
+  }
+}

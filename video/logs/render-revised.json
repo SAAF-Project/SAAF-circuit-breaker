@@ -1,0 +1,171 @@
+{
+  "status": "completed",
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/SAAF-judging-demo.mp4",
+  "dry_run": false,
+  "verified": true,
+  "summary": {
+    "duration_s": 79.4,
+    "width": 1920,
+    "height": 1080,
+    "fps": 29.899,
+    "vcodec": "h264",
+    "acodec": "aac",
+    "channels": 2
+  },
+  "commands": 4,
+  "stages": [
+    "clips",
+    "join",
+    "captions",
+    "loudness",
+    "export",
+    "check"
+  ],
+  "check": {
+    "status": "completed",
+    "output": null,
+    "dry_run": false,
+    "commands": [
+      "/Users/brightech/.hermes/cache/scratch/saaf-video-tools/bin/ffmpeg -hide_banner -nostdin -i /Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/SAAF-judging-demo.mp4 -vn -af loudnorm=I=-14:TP=-1:LRA=11:print_format=json -f null -"
+    ],
+    "verified": false,
+    "verification": [],
+    "platform": "youtube",
+    "checks": [
+      {
+        "check": "duration",
+        "status": "PASS",
+        "value": "79.40s",
+        "expected": "<= 43200s",
+        "fix": "decide with the user: cut.py keeps quality but drops content; fit.py --duration speeds up (audio pitch-preserved, motion faster)",
+        "reason": "",
+        "kind": "judgement"
+      },
+      {
+        "check": "aspect",
+        "status": "PASS",
+        "value": "16:9",
+        "expected": "16:9/9:16/1:1/4:3",
+        "fix": "fit.py --aspect 16:9 --fit pad (keeps everything, adds bars) or crop (fills the frame, loses the edges: check the subject with look.py)",
+        "reason": "",
+        "kind": "judgement"
+      },
+      {
+        "check": "resolution",
+        "status": "PASS",
+        "value": "1920x1080",
+        "expected": "short side >= 720",
+        "fix": "upscaling will not add detail; re-export from the master",
+        "reason": "",
+        "kind": "judgement"
+      },
+      {
+        "check": "fps",
+        "status": "PASS",
+        "value": "29.899",
+        "expected": "<= 60",
+        "fix": "fit.py --fps 30 (drops half the frames of 60 fps motion; fine for talking heads, visible on sports/gaming)",
+        "reason": "",
+        "kind": "judgement"
+      },
+      {
+        "check": "vfr",
+        "status": "PASS",
+        "value": "constant",
+        "expected": "constant",
+        "fix": "fit.py --fps N (any re-encode conforms it)",
+        "reason": "",
+        "kind": "format"
+      },
+      {
+        "check": "video codec",
+        "status": "PASS",
+        "value": "h264",
+        "expected": "h264/hevc/prores/av1/vp9",
+        "fix": "export.py --preset youtube",
+        "reason": "",
+        "kind": "format"
+      },
+      {
+        "check": "colour",
+        "status": "PASS",
+        "value": "untagged (players assume bt709)",
+        "expected": "bt709/bt709 tagged (or HDR)",
+        "fix": "",
+        "reason": "",
+        "kind": "format"
+      },
+      {
+        "check": "file size",
+        "status": "PASS",
+        "value": "5.4 MB",
+        "expected": "<= 262144 MB",
+        "fix": "export.py --crf 24 or lower resolution",
+        "reason": "",
+        "kind": "format"
+      },
+      {
+        "check": "audio",
+        "status": "PASS",
+        "value": "aac 2ch 48000Hz",
+        "expected": "present",
+        "fix": "",
+        "reason": "",
+        "kind": "format"
+      },
+      {
+        "check": "subtitles",
+        "status": "WARN",
+        "value": "none",
+        "expected": ">= 1 language-tagged subtitle track",
+        "fix": "caption.py video.mp4 --mode mux --srt subs.srt:en -o video_subs.mkv (streams are copied)",
+        "reason": "subtitles are optional, but they are the cheapest accessibility win a delivery has",
+        "kind": "format"
+      },
+      {
+        "check": "loudness",
+        "status": "PASS",
+        "value": "-14.1 LUFS",
+        "expected": "-14 \u00b1 2 LUFS",
+        "fix": "loudness.py -I -14 for speech or music; leave ambience/near-silence (<= -40 LUFS) alone and say so",
+        "reason": "",
+        "kind": "judgement"
+      },
+      {
+        "check": "true peak",
+        "status": "PASS",
+        "value": "-1.5 dBTP",
+        "expected": "<= -1 dBTP",
+        "fix": "loudness.py --tp -1",
+        "reason": "",
+        "kind": "judgement"
+      }
+    ],
+    "failed": 0,
+    "warnings": 1,
+    "ok": true
+  },
+  "snap": null,
+  "cache": null,
+  "caption": {
+    "shifted": 0,
+    "wrapped": 0,
+    "split": 0,
+    "extended": 0,
+    "dropped": 0,
+    "rebalanced": 0,
+    "wrap": "phrase",
+    "phrase_breaks": 0,
+    "fit_size": "auto",
+    "size_requested": 24,
+    "size_used": 24,
+    "size_floor": 13,
+    "size_pct_height": 8.33,
+    "shrunk": 0,
+    "fit_scope": "file",
+    "fit_exhausted": false,
+    "cues_burned": 30,
+    "cues_outside": 0,
+    "text_unchanged": true
+  }
+}

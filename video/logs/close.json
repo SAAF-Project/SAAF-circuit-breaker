@@ -1,0 +1,14 @@
+{
+  "status": "completed",
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/close-silent.mp4",
+  "dry_run": false,
+  "verified": true,
+  "summary": {
+    "duration_s": 11.034,
+    "width": 1920,
+    "height": 1080,
+    "fps": 30.0,
+    "vcodec": "h264"
+  },
+  "commands": 1
+}

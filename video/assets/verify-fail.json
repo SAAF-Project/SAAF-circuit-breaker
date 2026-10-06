@@ -1,0 +1,56 @@
+{
+  "url": "http://127.0.0.1:3189/verify",
+  "text": "SAAF Circuit Breaker\nJET CARE \u00b7 AGENTS GONE ROGUE\nCommand\nForge\nMiroFish\nJev Sentinel\nVerify\nSwarm\nLedger\nZERO LLM\nISA 230\n\nSTAGE 04 \u00b7 SAAF-VERIFY\n\nRe-perform the audit. Do not ask the model.\n\nRecompute full-event hashes, parent linkage, trusted genesis and available guard inputs offline. Zero model calls. This demonstrates audit re-performance, not signatures, authenticity or certified compliance.\n\nGENESIS MATCH\n\nPASS\n\nHASH CHAIN\n\nPASS\n\nMERKLE ROOT\n\nPASS\n\nAUDIT SEAL\n\nPASS\n\nMERKLE DAG\n\nGenesis \u2192 instruction diff \u2192 decision\n\nf621d86a549b07a230505c27d5cd99b8a1ce8611089c9e4c7ed61846f4205069\n\n092f8980\nf68de534\n530ebf10\n7f53f286\n792696ad\nb9113b1b\nd6ef3547\nee1d2470\n00ca5360\nf6f2032d\neec6c0f6\n585ff143\n7df49cbf\n96c17cbe\n32877837\n353f7903\n46e81fcf\nb026a64b\n2828a065\n2f55717b\nc2bb29fe\n4651e609\nd84b7435\nd484c42d\n6c94aab1\n2451180f\nf60403b8\n8e2c1087\n01fd71d3\n2544c694\n27caf343\n\nPairwise SHA-256. First 16 leaves shown. Independent auditors re-compute the root with zero LLM calls.\n\nWORKPAPER\n\nWP-2026-JET-CARE-ON-0036\n\nISA_230 / NOREA_AI_CONTROL_FRAMEWORK\n\nf621d86a549b07a230505c27d5cd99b8a1ce8611089c9e4c7ed61846f4205069\n\nDeterministic consistency and re-performance checks passed; hashes are not signatures or proof of authenticity.\n\nOpen the full ledger \u2192\n\nOFFLINE RE-PERFORMANCE ENGINE\n\nPaste a workpaper. Recompute the chain.\nsaaf-verify\n\nVerification failed. Workpaper does not re-perform cleanly.\n\nGenesis: ok\nStep hashes: fail\nMerkle: fail\nSeal: fail\n\ncomputed 7c0fc8e56f5ee882f5bfa8137c005442e576f986e7d6d85e956ce33a6b08ddd9",
+  "scroll": 249,
+  "panels": [
+    {
+      "text": "GENESIS MATCH\n\nPASS",
+      "x": 255,
+      "y": 140.5,
+      "w": 338,
+      "h": 85
+    },
+    {
+      "text": "HASH CHAIN\n\nPASS",
+      "x": 609,
+      "y": 140.5,
+      "w": 338,
+      "h": 85
+    },
+    {
+      "text": "MERKLE ROOT\n\nPASS",
+      "x": 963,
+      "y": 140.5,
+      "w": 338,
+      "h": 85
+    },
+    {
+      "text": "AUDIT SEAL\n\nPASS",
+      "x": 1317,
+      "y": 140.5,
+      "w": 338,
+      "h": 85
+    },
+    {
+      "text": "MERKLE DAG\n\nGenesis \u2192 instruction diff \u2192 decision\n\nf621d86a549b07a230505c27d5cd99b8a1ce8611089c9e4c7ed61846f4205069\n\n092",
+      "x": 255,
+      "y": 257.5,
+      "w": 692,
+      "h": 357.5
+    },
+    {
+      "text": "WORKPAPER\n\nWP-2026-JET-CARE-ON-0036\n\nISA_230 / NOREA_AI_CONTROL_FRAMEWORK\n\nf621d86a549b07a230505c27d5cd99b8a1ce8611089c9",
+      "x": 963,
+      "y": 257.5,
+      "w": 692,
+      "h": 357.5
+    },
+    {
+      "text": "OFFLINE RE-PERFORMANCE ENGINE\n\nPaste a workpaper. Recompute the chain.\nsaaf-verify\n\nVerification failed. Workpaper does ",
+      "x": 255,
+      "y": 647,
+      "w": 1400,
+      "h": 497
+    }
+  ]
+}

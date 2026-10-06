@@ -1,0 +1,57 @@
+{
+  "file": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/05-intercept.mp4",
+  "format": "mov,mp4,m4a,3gp,3g2,mj2",
+  "duration": 10.534,
+  "size_bytes": 348260,
+  "bitrate": 264484,
+  "video": {
+    "codec": "h264",
+    "profile": "High",
+    "width": 1920,
+    "height": 1080,
+    "display_aspect": "16:9",
+    "fps": 30.0,
+    "r_frame_rate": "30/1",
+    "avg_frame_rate": "30/1",
+    "variable_frame_rate_suspected": false,
+    "pix_fmt": "yuv420p",
+    "bit_depth": 8,
+    "hdr": false,
+    "hdr_signal": false,
+    "bt2020_or_hdr": false,
+    "hdr_format": null,
+    "dolby_vision": null,
+    "color_space": "bt709",
+    "color_primaries": null,
+    "color_transfer": null,
+    "color_range": "tv",
+    "rotation": 0,
+    "nb_frames": 316,
+    "duration": 10.533333,
+    "bitrate": 139503
+  },
+  "audio": {
+    "codec": "aac",
+    "channels": 2,
+    "channel_layout": "stereo",
+    "sample_rate": 24000,
+    "bitrate": 117025,
+    "duration": 10.534
+  },
+  "subtitle_streams": 0,
+  "data_streams": 0,
+  "chapters": [],
+  "tags": {},
+  "subtitle_stream_details": [],
+  "audio_streams": [
+    {
+      "index": 0,
+      "codec": "aac",
+      "channels": 2,
+      "channel_layout": "stereo",
+      "sample_rate": 24000,
+      "language": "und",
+      "title": null
+    }
+  ]
+}

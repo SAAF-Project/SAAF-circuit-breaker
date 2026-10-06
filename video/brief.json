@@ -1,0 +1,23 @@
+{
+  "project": "SAAF Circuit Breaker — judging walkthrough",
+  "mode": "autonomous product walkthrough",
+  "audience": "Hackathon judging panel and nontechnical organisers",
+  "duration_constraint_seconds": [60, 90],
+  "format": {"width": 1920, "height": 1080, "fps": 30, "video_codec": "h264", "audio_codec": "aac"},
+  "audio": {"narration": "clear English synthetic voice", "music": false, "captions": true},
+  "visuals": {"palette": {"background": "#07080c", "panel": "#10141c", "text": "#ece7dc", "muted": "#9aa3b2", "orange": "#ff7a1a", "cyan": "#3ee0c5", "red": "#ff4d6d"}, "style": "actual interface captures, restrained camera motion, large explanatory captions", "motion": "stable frontal UI, gentle push-in, readable holds; no flashing or shake"},
+  "scope": "Show the actual local app. Rehearsal is explicitly scripted; real Jev, deterministic guards, persisted local restoration and offline verification are real. No actual payments, external agent/container actuation, signed records or certified compliance are claimed.",
+  "data": "Use only the prototype's synthetic sample tickets. Never show API keys, raw database connection strings, environment files or private terminal data.",
+  "implementation": "Use inspected local FFmpeg skill scripts and genuine page captures. No generated imitation of the app UI. Abstract opening/closing cards are original graphics.",
+  "shots": [
+    {"id": "problem", "asset": "problem", "heading": "When good ratings weaken good rules", "narration": "An AI refund assistant can learn the wrong lesson: chase good ratings, and quietly weaken the refund rules."},
+    {"id": "product", "asset": "dashboard", "heading": "SAAF Circuit Breaker", "narration": "We built SAAF Circuit Breaker: a safety layer outside the assistant, so suggestions cannot override business limits."},
+    {"id": "forge", "asset": "forge", "heading": "1 · Forge: inspect the setup", "narration": "Forge inspects the agent and produces a risk report and rule files."},
+    {"id": "rehearsal_off", "asset": "rehearsal-off", "heading": "2 · Rehearsal: practice under pressure", "narration": "Rehearsal plays thirty-six sample tickets. With protection off, the scripted scenario shows rules eroding and unauthorized refunds."},
+    {"id": "rehearsal_on", "asset": "rehearsal-on", "heading": "Protection on: contain the violations", "narration": "Switch protection on, and the same scenario shows the guard containing those violations."},
+    {"id": "intercept", "asset": "sentinel-before", "heading": "3 · Sentinel: guard the proposed action", "narration": "Now a live test: twenty-one euros thirty-five, no photo. The hard guard blocks it. Real Jev checks the instructions and saved lessons."},
+    {"id": "restore", "asset": "sentinel-after", "heading": "Reject unsafe state. Restore safe instructions.", "narration": "When unsafe rules are detected, the local runtime restores safe instructions and memory, and saves the decision for human review."},
+    {"id": "verify", "asset": "verify", "heading": "4 · Verify: recheck the decision receipt", "narration": "Verify rechecks the saved decision and rules without another model call. Change the recorded verdict, and the consistency check fails."},
+    {"id": "close", "asset": "close", "heading": "Let the AI propose. Keep policy in charge.", "narration": "This is a working local prototype: real Jev and containment, scripted rehearsal, and no real payments. Let the AI propose. Keep policy in charge."}
+  ]
+}

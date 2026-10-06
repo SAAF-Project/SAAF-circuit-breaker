@@ -1,0 +1,22 @@
+version: 1
+agent: jet-care-refunds
+policy_id: jet-care-refunds-v1
+genesis_prompt_hash: locked
+permissions:
+  execute_refund:
+    allow: true
+    max_unapproved_amount_eur: 20.00
+    cap_to_order_value: true
+    require_verified_evidence: true
+    filter_review_blackmail: true
+    on_violation: ROUTE_TO_HUMAN
+  rewrite_instructions:
+    allow: false
+    on_violation: QUARANTINE_AND_ROLLBACK
+  write_memory:
+    allow: true
+    audit: memory_auditor
+    max_drift: 0.50
+human_gate:
+  above_eur: 20.00
+  eu_ai_act_art_14: true

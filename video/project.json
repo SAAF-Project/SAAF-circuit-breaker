@@ -1,0 +1,49 @@
+{
+  "output": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/SAAF-judging-demo.mp4",
+  "clips": [
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/00-problem.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/01-product.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/02-forge.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/03-rehearsal_off.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/04-rehearsal_on.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/05-intercept.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/06-restore.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/07-verify.mp4"
+    },
+    {
+      "src": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/08-close.mp4"
+    }
+  ],
+  "transition": {
+    "type": "none"
+  },
+  "captions": {
+    "ass": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/narration.ass"
+  },
+  "loudness": {
+    "lufs": -14,
+    "tp": -1.5
+  },
+  "export": {
+    "preset": "youtube",
+    "normalize": false
+  },
+  "check": {
+    "platform": "youtube"
+  }
+}

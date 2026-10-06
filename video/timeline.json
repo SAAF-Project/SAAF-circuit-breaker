@@ -1,0 +1,83 @@
+[
+  {
+    "id": "problem",
+    "heading": "When good ratings weaken good rules",
+    "asset": "problem",
+    "narration": "An AI refund assistant can learn the wrong lesson: chase good ratings, and quietly weaken the refund rules.",
+    "start": 0.0,
+    "duration": 8.1,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/00-problem.mp4"
+  },
+  {
+    "id": "product",
+    "heading": "SAAF Circuit Breaker",
+    "asset": "dashboard",
+    "narration": "We built SAAF Circuit Breaker: a safety layer outside the assistant, so suggestions cannot override business limits.",
+    "start": 8.1,
+    "duration": 8.567,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/01-product.mp4"
+  },
+  {
+    "id": "forge",
+    "heading": "1 \u00b7 Forge: inspect the setup",
+    "asset": "forge",
+    "narration": "Forge inspects the agent and produces a risk report and rule files.",
+    "start": 16.667,
+    "duration": 5.467,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/02-forge.mp4"
+  },
+  {
+    "id": "rehearsal_off",
+    "heading": "2 \u00b7 Rehearsal: practice under pressure",
+    "asset": "rehearsal-off",
+    "narration": "Rehearsal plays thirty-six sample tickets. With protection off, the scripted scenario shows rules eroding and unauthorized refunds.",
+    "start": 22.134,
+    "duration": 10.3,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/03-rehearsal_off.mp4"
+  },
+  {
+    "id": "rehearsal_on",
+    "heading": "Protection on: contain the violations",
+    "asset": "rehearsal-on",
+    "narration": "Switch protection on, and the same scenario shows the guard containing those violations.",
+    "start": 32.434,
+    "duration": 6.234,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/04-rehearsal_on.mp4"
+  },
+  {
+    "id": "intercept",
+    "heading": "3 \u00b7 Sentinel: guard the proposed action",
+    "asset": "sentinel-before",
+    "narration": "Now a live test: twenty-one euros thirty-five, no photo. The hard guard blocks it. Real Jev checks the instructions and saved lessons.",
+    "start": 38.668,
+    "duration": 10.534,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/05-intercept.mp4"
+  },
+  {
+    "id": "restore",
+    "heading": "Reject unsafe state. Restore safe instructions.",
+    "asset": "sentinel-after",
+    "narration": "When unsafe rules are detected, the local runtime restores safe instructions and memory, and saves the decision for human review.",
+    "start": 49.202,
+    "duration": 9.3,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/06-restore.mp4"
+  },
+  {
+    "id": "verify",
+    "heading": "4 \u00b7 Verify: recheck the decision receipt",
+    "asset": "verify",
+    "narration": "Verify rechecks the saved decision and rules without another model call. Change the recorded verdict, and the consistency check fails.",
+    "start": 58.501999999999995,
+    "duration": 9.8,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/07-verify.mp4"
+  },
+  {
+    "id": "close",
+    "heading": "Let the AI propose. Keep policy in charge.",
+    "asset": "close",
+    "narration": "This is a working local prototype: real Jev and containment, scripted rehearsal, and no real payments. Let the AI propose. Keep policy in charge.",
+    "start": 68.30199999999999,
+    "duration": 11.034,
+    "clip": "/Users/brightech/Downloads/saaf-circuit-breaker-prototype/video/clips/08-close.mp4"
+  }
+]

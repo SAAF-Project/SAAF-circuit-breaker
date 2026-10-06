@@ -1,0 +1,17 @@
+An AI refund assistant can learn the wrong lesson: chase good ratings, and quietly weaken the refund rules.
+
+We built SAAF Circuit Breaker: a safety layer outside the assistant, so suggestions cannot override business limits.
+
+Forge inspects the agent and produces a risk report and rule files.
+
+Rehearsal plays thirty-six sample tickets. With protection off, the scripted scenario shows rules eroding and unauthorized refunds.
+
+Switch protection on, and the same scenario shows the guard containing those violations.
+
+Now a live test: twenty-one euros thirty-five, no photo. The hard guard blocks it. Real Jev checks the instructions and saved lessons.
+
+When unsafe rules are detected, the local runtime restores safe instructions and memory, and saves the decision for human review.
+
+Verify rechecks the saved decision and rules without another model call. Change the recorded verdict, and the consistency check fails.
+
+This is a working local prototype: real Jev and containment, scripted rehearsal, and no real payments. Let the AI propose. Keep policy in charge.
