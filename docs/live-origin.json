@@ -1,0 +1,6 @@
+{
+  "origin": "https://sir-generators-directors-river.trycloudflare.com",
+  "mode": "live-app-through-temporary-tunnel",
+  "backend": "The same local Next.js app on 127.0.0.1:3189 with PostgreSQL and server-side Jev",
+  "uptime": "Requires the backend Mac to remain awake and connected; not permanent cloud hosting"
+}

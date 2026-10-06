@@ -70,3 +70,6 @@ site = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name
 assert all(f'id="{key}"' in site for key,_,_,_ in pages)
 assert 'api_key' not in site.lower() or 'server' in site.lower()
 print('Built seven-page static inspection companion:', OUT/'index.html')
+if (OUT / 'live-origin.json').exists():
+    import runpy
+    runpy.run_path(str(ROOT / 'scripts/build-live-pages.py'), run_name='__main__')
