@@ -42,92 +42,61 @@ export function ForgeConsole() {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="noise-panel rounded-3xl p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="kicker">Static AST inspection</p>
-            <h2 className="font-display text-xl font-semibold">Scan the rogue agent</h2>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setSource(SAMPLE_ROGUE_AGENT)}
-              className="rounded-full bg-white/8 px-3 py-1 text-xs"
-            >
-              Rogue
-            </button>
-            <button
-              type="button"
-              onClick={() => setSource(SAMPLE_GUARDED_AGENT)}
-              className="rounded-full bg-white/8 px-3 py-1 text-xs"
-            >
-              Guarded
-            </button>
-          </div>
+    <div className="min-w-0 space-y-4">
+      <section className="noise-panel min-w-0 rounded-2xl p-5">
+        <h2 className="font-display text-xl font-semibold">Scan an agent</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[#c8c3b8]">Start with the rogue sample, or choose the guarded sample and run a new scan.</p>
+        <p className="mt-3 text-sm text-[#3ee0c5]">Loaded source: {source === SAMPLE_ROGUE_AGENT ? "rogue sample" : source === SAMPLE_GUARDED_AGENT ? "guarded sample" : "edited source"}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button type="button" onClick={runScan} disabled={busy} className="min-h-11 rounded-full bg-[#ff7a1a] px-5 py-2 text-sm font-semibold text-black disabled:opacity-60">
+            {busy ? "Scanning…" : "Run Forge scan"}
+          </button>
+          <button type="button" onClick={() => setSource(SAMPLE_ROGUE_AGENT)} className="min-h-11 rounded-full bg-white/8 px-4 py-2 text-sm text-[#eee9df]">Load rogue sample</button>
+          <button type="button" onClick={() => setSource(SAMPLE_GUARDED_AGENT)} className="min-h-11 rounded-full bg-white/8 px-4 py-2 text-sm text-[#eee9df]">Load guarded sample</button>
         </div>
-        <textarea
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-          className="font-mono h-[420px] w-full resize-none rounded-2xl bg-black/50 p-4 text-[11px] leading-relaxed text-[#d7d2c6] outline-none ring-1 ring-white/10"
-        />
-        <button
-          type="button"
-          onClick={runScan}
-          disabled={busy}
-          className="mt-3 rounded-full bg-[#ff7a1a] px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
-        >
-          {busy ? "Compiling…" : "Forge scan + compile invariants"}
-        </button>
-      </div>
+        <p className="mt-3 text-sm text-[#c8c3b8]">Findings below show the initial rogue scan or your last scan; loading or editing source does not rerun it.</p>
+      </section>
 
-      <div className="space-y-4">
-        <div className="noise-panel rounded-3xl p-5">
-          <p className="kicker">Findings</p>
-          <h2 className="font-display mb-3 text-xl font-semibold">{findings.length} red flags</h2>
-          <div className="space-y-2">
-            {findings.map((f) => (
-              <div key={`${f.flag}-${f.line}`} className="rounded-xl bg-white/4 p-3 ring-1 ring-white/5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-mono text-[10px] tracking-widest text-[#ff7a1a] uppercase">{f.flag}</p>
-                  <span className="font-mono text-[10px] text-[#e8c36a]">{f.severity}</span>
-                </div>
-                <p className="mt-1 text-sm">{f.title}</p>
-                <p className="mt-1 text-xs text-[#9aa3b2]">{f.detail}</p>
-                <pre className="font-mono mt-2 overflow-auto text-[10px] text-[#3ee0c5]">
-                  L{f.line}: {f.snippet}
-                </pre>
+      <section className="noise-panel min-w-0 rounded-2xl p-5" aria-live="polite" aria-busy={busy}>
+        <p className="kicker">Latest findings</p>
+        <h2 className="font-display mt-1 mb-3 text-xl font-semibold">{findings.length} red flags</h2>
+        <div className="grid min-w-0 gap-3 md:grid-cols-2">
+          {findings.map((f) => (
+            <div key={`${f.flag}-${f.line}`} className="min-w-0 rounded-xl bg-white/4 p-4 ring-1 ring-white/5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-mono break-words text-xs text-[#ff7a1a]">{f.flag}</p>
+                <span className="text-xs text-[#e8c36a]">{f.severity} · line {f.line}</span>
               </div>
-            ))}
-            {findings.length === 0 ? (
-              <p className="text-sm text-emerald-300">No red flags. Hard rules appear to live in code.</p>
-            ) : null}
-          </div>
+              <h3 className="mt-2 text-sm font-semibold">{f.title}</h3>
+              <p className="mt-2 break-words text-sm leading-relaxed text-[#c8c3b8]">{f.detail}</p>
+              <details className="mt-3 min-w-0">
+                <summary className="cursor-pointer text-sm text-[#3ee0c5]">Show flagged code</summary>
+                <pre className="font-mono mt-2 whitespace-pre-wrap break-all text-xs leading-relaxed text-[#c8c3b8]">L{f.line}: {f.snippet}</pre>
+              </details>
+            </div>
+          ))}
+          {findings.length === 0 ? <p className="text-sm text-[#3ee0c5]">No red flags found by these checks. This is not a proof of safety.</p> : null}
         </div>
-        <div className="noise-panel rounded-3xl p-5">
-          <div className="mb-3 flex gap-2">
-            {(
-              [
-                ["yaml", "permissions.yaml"],
-                ["md", "AGENTS.md"],
-                ["jev", "jev_rules.json"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                className={`rounded-full px-3 py-1 text-xs ${tab === key ? "bg-white/15" : "bg-white/5 text-[#9aa3b2]"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <pre className="font-mono max-h-72 overflow-auto text-[11px] leading-relaxed text-[#c8c3b8]">
-            {tab === "yaml" ? artifacts.yaml : tab === "md" ? artifacts.md : artifacts.jev}
-          </pre>
+      </section>
+
+      <details className="noise-panel min-w-0 rounded-2xl p-5">
+        <summary className="cursor-pointer text-base font-semibold text-[#eee9df]">View or edit full agent source</summary>
+        <label htmlFor="forge-source" className="mt-4 block text-sm text-[#c8c3b8]">Agent source · edits are included in your next scan</label>
+        <textarea id="forge-source" value={source} onChange={(e) => setSource(e.target.value)} spellCheck={false} className="font-mono mt-3 h-72 w-full min-w-0 resize-y rounded-xl bg-black/50 p-4 text-xs leading-relaxed text-[#d7d2c6] ring-1 ring-white/20 focus:outline-2 focus:outline-[#3ee0c5]" />
+      </details>
+
+      <details className="noise-panel min-w-0 rounded-2xl p-5">
+        <summary className="cursor-pointer text-base font-semibold text-[#eee9df]">View compiled policy artifacts · YAML, instructions and Jev rules</summary>
+        <p className="mt-4 text-sm text-[#c8c3b8]">Compiled policy artifacts are shown for inspection; scanning does not modify or deploy your agent.</p>
+        <div className="mt-4 mb-3 flex flex-wrap gap-2">
+          {([["yaml", "permissions.yaml"], ["md", "AGENTS.md"], ["jev", "jev_rules.json"]] as const).map(([key, label]) => (
+            <button key={key} type="button" onClick={() => setTab(key)} aria-pressed={tab === key} className={`min-h-11 rounded-full px-3 py-2 text-sm ${tab === key ? "bg-white/15 text-[#eee9df]" : "bg-white/5 text-[#c8c3b8]"}`}>
+              {label}
+            </button>
+          ))}
         </div>
-      </div>
+        <pre className="font-mono max-h-80 overflow-auto whitespace-pre-wrap break-all text-xs leading-relaxed text-[#c8c3b8]">{tab === "yaml" ? artifacts.yaml : tab === "md" ? artifacts.md : artifacts.jev}</pre>
+      </details>
     </div>
   );
 }

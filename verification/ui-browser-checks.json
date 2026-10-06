@@ -1,0 +1,51 @@
+{
+  "mobile": [
+    {
+      "route": "/",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": 7
+    },
+    {
+      "route": "/forge",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": 7
+    },
+    {
+      "route": "/rehearsal",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": 7
+    },
+    {
+      "route": "/sentinel",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": 7
+    },
+    {
+      "route": "/verify",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": 7
+    },
+    {
+      "route": "/personas",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": 7
+    },
+    {
+      "route": "/ledger",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": 7
+    }
+  ],
+  "liveJev": true,
+  "localRestoration": true,
+  "forgeDisclosure": true,
+  "rehearsalControls": true,
+  "verifyControls": true
+}

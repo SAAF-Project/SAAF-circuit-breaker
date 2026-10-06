@@ -17,32 +17,33 @@ const LINKS = [
 export function Nav() {
   const path = usePathname();
   return (
-    <header className="sticky top-0 z-50 border-b border-white/5 bg-[#07080c]/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-6 px-5 py-3">
-        <Link href="/" className="flex items-center gap-3">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#07080c]/95 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 py-3">
+        <Link href="/" className="flex min-h-11 shrink-0 items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-orange-500/15 text-[#ff7a1a] ring-1 ring-orange-500/40">
-            <ShieldAlert size={18} />
+            <ShieldAlert size={18} aria-hidden="true" />
           </span>
           <span>
             <span className="font-display block text-[15px] font-semibold leading-none tracking-tight">
               SAAF Circuit Breaker
             </span>
-            <span className="font-mono mt-1 block text-[10px] tracking-[0.18em] text-[#9aa3b2] uppercase">
-              JET Care · Agents Gone Rogue
+            <span className="mt-1 block text-xs text-[#9aa3b2]">
+              Refund safety · working prototype
             </span>
           </span>
         </Link>
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main navigation" className="flex w-full flex-wrap items-center gap-1 lg:w-auto">
           {LINKS.map((link) => {
             const active = path === link.href;
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-full px-3 py-1.5 text-[13px] transition ${
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-11 items-center whitespace-nowrap rounded-full px-3 text-sm transition ${
                   active
                     ? "bg-white/10 text-white"
-                    : "text-[#9aa3b2] hover:bg-white/5 hover:text-white"
+                    : "text-[#b6bfcc] hover:bg-white/5 hover:text-white"
                 }`}
               >
                 {link.label}
@@ -50,14 +51,6 @@ export function Nav() {
             );
           })}
         </nav>
-        <div className="flex items-center gap-2">
-          <span className="font-mono hidden rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] tracking-wider text-emerald-300 uppercase sm:inline">
-            Zero LLM
-          </span>
-          <span className="font-mono rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[10px] tracking-wider text-amber-200 uppercase">
-            ISA 230
-          </span>
-        </div>
       </div>
     </header>
   );

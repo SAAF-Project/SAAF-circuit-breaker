@@ -78,7 +78,7 @@ export function SentinelConsole() {
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="noise-panel min-w-0 rounded-3xl p-5">
         <p className="kicker">Live interceptor</p>
-        <h2 className="font-display mb-4 text-xl font-semibold">Process an incoming tool call</h2>
+        <h2 className="font-display mb-4 text-xl font-semibold">Refund inputs</h2>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-xs text-[#9aa3b2]">
             Amount EUR
@@ -101,7 +101,7 @@ export function SentinelConsole() {
             />
           </label>
         </div>
-        <div className="mt-3 flex gap-4 text-sm">
+        <div className="mt-3 flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={hasPhoto} onChange={(e) => setHasPhoto(e.target.checked)} />
             Photo evidence
@@ -111,6 +111,13 @@ export function SentinelConsole() {
             1-star threat
           </label>
         </div>
+        <button type="button" onClick={intercept} disabled={busy} className="mt-4 min-h-11 w-full rounded-full bg-[#ff7a1a] px-4 py-2 text-sm font-semibold text-black disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3ee0c5] sm:w-auto">
+          {busy ? "Evaluating…" : "Intercept execute_refund()"}
+        </button>
+        {error ? <p role="alert" className="mt-3 break-words text-sm text-rose-300">{error}</p> : null}
+        <p className="mt-3 text-xs text-[#9aa3b2]">Local demo agent · real Jev judgment · no external refund executed</p>
+        <details className="mt-4 min-w-0 rounded-xl border border-white/10 p-3">
+          <summary className="cursor-pointer text-sm font-semibold">Working prompt and memory</summary>
         <label className="mt-4 block text-xs text-[#9aa3b2]">
           Working prompt
           <textarea
@@ -127,20 +134,11 @@ export function SentinelConsole() {
             className="font-mono mt-1 h-24 w-full rounded-xl bg-black/40 p-3 text-[11px] outline-none ring-1 ring-white/10"
           />
         </label>
-        <button
-          type="button"
-          onClick={intercept}
-          disabled={busy}
-          className="mt-4 rounded-full bg-[#ff7a1a] px-4 py-2 text-sm font-semibold text-black"
-        >
-          {busy ? "Evaluating…" : "Intercept execute_refund()"}
-        </button>
-        {error ? <p role="alert" className="mt-3 text-sm text-rose-300">{error}</p> : null}
-        <p className="mt-3 text-xs text-[#9aa3b2]">Local demo agent · real Jev judgment · no external refund executed</p>
+        </details>
       </div>
 
       <div className="noise-panel min-w-0 rounded-3xl p-5">
-        <p className="kicker">Three layers outside the model</p>
+        <p className="kicker">Decision and local state</p>
         <h2 className="font-display mb-4 text-xl font-semibold">
           {result ? result.verdict : "Awaiting tool call"}
         </h2>
@@ -153,12 +151,18 @@ export function SentinelConsole() {
               Guard {result.guard.evaluation} · drift {result.drift.driftScore.toFixed(2)}
             </p>
             <div className="rounded-2xl bg-[#3ee0c5]/10 p-3 text-sm">
-              <p>Jev {result.jev.status} · {result.jev.model ?? result.jev.error}</p>
-              <p className="font-mono text-xs">{result.jev.choice ?? "human review (fail closed)"} · {result.jev.latencyMs}ms · confidence {result.jev.confidence?.toFixed(2) ?? "n/a"}</p>
-              <p className="mt-2 text-xs">{result.persisted ? "State and evidence committed" : "Not committed"} · {result.humanReview}</p>
-              {result.rollbackExecuted ? <p className="mt-1 text-xs">Checkpoint restored: {result.checkpointHash.slice(0, 16)}</p> : null}
-              <a className="mt-2 block underline" href={`/workpapers/${result.workpaper.workpaperId}`}>Open persisted workpaper →</a>
+              <p className="break-words">Jev {result.jev.status} · {result.jev.model ?? "model unavailable"}</p>
+              {result.jev.error ? <p role="alert" className="mt-1 break-words text-rose-300">{result.jev.error}</p> : null}
+              <p className="font-mono break-words text-xs">{result.jev.choice ?? "human review (fail closed)"} · {result.jev.latencyMs}ms · confidence {result.jev.confidence?.toFixed(2) ?? "n/a"}</p>
+              <p className="mt-2 break-words text-xs">{result.persisted ? "State and evidence committed" : "Not committed"} · local review status: {result.humanReview}</p>
+              <p className="mt-1 text-xs">Human review is a local status, not staffed approval.</p>
+              <p className="mt-1 text-xs">{result.rollbackExecuted ? "Local checkpoint restored" : "No local restoration performed"}</p>
+              <a className="mt-2 block break-words underline" href={`/workpapers/${result.workpaper.workpaperId}`}>Open workpaper evidence →</a>
             </div>
+            <details className="min-w-0 rounded-xl border border-white/10 p-3">
+              <summary className="cursor-pointer text-sm font-semibold">Guard reasons, drift and checkpoint hash</summary>
+              <p className="mt-3 break-words text-sm text-[#9aa3b2]">{result.guard.reason}</p>
+              <p className="font-mono mt-2 break-all text-xs text-[#3ee0c5]">Checkpoint: {result.checkpointHash}</p>
             {result.guard.violations.length > 0 ? (
               <ul className="list-disc pl-4 text-sm text-rose-300">
                 {result.guard.violations.map((v) => (
@@ -177,6 +181,7 @@ export function SentinelConsole() {
               <Layer name="Instruction" hot={result.drift.weakenedRules.length > 0} />
               <Layer name="Memory" hot={result.drift.memoryDrift >= 0.35} />
             </div>
+            </details>
           </div>
         ) : (
           <p className="text-sm text-[#9aa3b2]">
