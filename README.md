@@ -71,3 +71,36 @@ Drift ≥ **0.50** (or one weakened hard rule) restores the last healthy checkpo
 ## Governance
 
 EU AI Act Art. 14 · NOREA / IIA · ISA 230 · ForHumanity · SAAF Shared Audit Agents Framework
+
+## Prerequisites
+
+- Node.js with npm for the web prototype. TODO(owner): state the supported Node.js version (none is pinned in `package.json`).
+- PostgreSQL, reached through `DATABASE_URL`.
+- Python 3.11+ for the offline CLI (`saaf-circuit-breaker/pyproject.toml`).
+- Credentials come from server environment variables only (`TYPESAFE_API_KEY` or `JEV_API_KEY`, `DATABASE_URL`); see `.env.example`. `.env` files are git-ignored.
+
+## Model & data residency
+
+- **Model:** the live web Sentinel calls the TypeSafe Jev API (`https://api.typesafe.ai/v1/systemone`, model `jev-latest`) from `src/lib/jev.ts`. The rehearsal, Forge, the Python CLI and the verifier make no model call.
+- **Data sent:** the proposed refund fields (amount, order total, photo-evidence flag, review threat, claim type), the current working instructions and memory, the local deterministic assessment and the compiled trusted policy. Tickets in this repo are synthetic.
+- TODO(owner): state where TypeSafe processes and stores this data (region, retention), and whether a local or EU-hosted option exists.
+
+## Limitations & human-review gate
+
+This is a local hackathon prototype. Do not rely on it unattended or use it as a production control.
+
+- Any verdict other than `ALLOW` is queued as `queued_local_review`. That is a local status: it is not an authenticated, staffed approval and nobody is notified.
+- No payment is ever executed (`paymentExecuted: false`), including for allowed proposals.
+- Workpapers are hash-consistency-checked, not signed. A passing check does not prove who produced them or that the trace is complete.
+- The full list of known gaps is in [`AUDIT-CRITERIA.md`](AUDIT-CRITERIA.md) section 5.
+- TODO(owner): state who must review Sentinel output before any decision is based on it.
+
+## Guardrails
+
+The agent code (`src/`, `saaf-circuit-breaker/`) contains none of the commands prohibited by SAAF's `regulatory/guardrails/allowed-commands.md` (`rm`, `sudo`, `curl`, `wget`, `ssh`, `scp`, `chmod`, `chown`, `cron`, runtime `pip install`). The only outbound call at runtime is to the Jev API. The `child_process`/`subprocess` calls in `scripts/test.mjs` and `video/` are developer tooling for tests and the demo video, not agent behaviour. TODO(owner): confirm this scope.
+
+## Maintainer and licence
+
+- **Maintainer:** GitHub `knarayanareddy` (from `AUDIT-CRITERIA.md`). TODO(owner): add the team / SAAF session and a contact channel.
+- **Licence:** TODO(owner): licence to be decided by Stichting SAAF.
+- **Plan:** TODO(owner): no plan for this agent was found in `SAAF-Project/plans/`; link one if it exists.
