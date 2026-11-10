@@ -4,6 +4,7 @@ import { POST } from "../src/app/api/verify/route";
 import {
   buildWorkpaper,
   computeTraceHash,
+  renderWorkpaperHtml,
   type TraceEvent,
   type Workpaper,
   verifyWorkpaper,
@@ -110,3 +111,43 @@ test("verify API returns a controlled 400 for malformed JSON", async () => {
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "Malformed JSON body" });
 });
+
+test("verifier rejects rehashed sub-cap blocked payouts, non-EUR currencies, step gaps, and deep nesting", () => {
+  // Rehashed blocked event claiming ALLOW / payout under €20 in watchdog_on mode
+  const forgedUnderCap = makeWorkpaper("watchdog_on");
+  forgedUnderCap.trace[0].toolArgs.amount = 15;
+  forgedUnderCap.trace[0].paidAmount = 15;
+  forgedUnderCap.trace[0].guardEvaluation = "BLOCKED_BY_ACTION_GUARD";
+  forgedUnderCap.trace[0].verdict = "ALLOW";
+  const { stepHash: _s1, ...p1 } = forgedUnderCap.trace[0];
+  forgedUnderCap.trace[0].stepHash = computeTraceHash(p1);
+  forgedUnderCap.merkleRoot = forgedUnderCap.trace[0].stepHash;
+  assert.equal(verifyWorkpaper(forgedUnderCap).ok, false);
+
+  // Rehashed non-contiguous step number (step: 2 at index 0)
+  const skippedStep = makeWorkpaper("watchdog_on");
+  skippedStep.trace[0].step = 2;
+  const { stepHash: _s2, ...p2 } = skippedStep.trace[0];
+  skippedStep.trace[0].stepHash = computeTraceHash(p2);
+  skippedStep.merkleRoot = skippedStep.trace[0].stepHash;
+  assert.equal(verifyWorkpaper(skippedStep).ok, false);
+
+  // Deeply nested extra field exceeding canonicalJson max depth fails closed without throwing
+  const deepWp = makeWorkpaper("watchdog_on");
+  let nested: Record<string, unknown> = { leaf: "ok" };
+  for (let i = 0; i < 40; i++) nested = { child: nested };
+  (deepWp.trace[0] as TraceEvent & Record<string, unknown>).extra = nested;
+  assert.equal(verifyWorkpaper(deepWp).ok, false);
+});
+
+test("workpaper HTML renderer escapes untrusted strings and sets CSP", () => {
+  const wp = makeWorkpaper("watchdog_on");
+  wp.workpaperId = 'WP-ON-<script>alert("x")</script>';
+  wp.trace[0].verdict = '<img src=x onerror=alert(1)>';
+  const html = renderWorkpaperHtml(wp, verifyWorkpaper(wp));
+  assert.ok(!html.includes("<script>"));
+  assert.ok(!html.includes("<img src=x"));
+  assert.ok(html.includes("&lt;script&gt;"));
+  assert.ok(html.includes("Content-Security-Policy"));
+});
+

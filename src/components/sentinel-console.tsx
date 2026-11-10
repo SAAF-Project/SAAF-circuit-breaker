@@ -54,7 +54,7 @@ export function SentinelConsole() {
           reviewThreat: threat,
           claimType: "goodwill",
           currentPrompt: prompt,
-          currentMemory: memory.split("\n").filter(Boolean),
+          currentMemory: memory.split("\n").map((s) => s.trim()).filter(Boolean),
         }),
       });
       const body = await res.json();
@@ -157,7 +157,7 @@ export function SentinelConsole() {
               <p className="mt-2 break-words text-xs">{result.persisted ? "State and evidence committed" : "Not committed"} · local review status: {result.humanReview}</p>
               <p className="mt-1 text-xs">Human review is a local status, not staffed approval.</p>
               <p className="mt-1 text-xs">{result.rollbackExecuted ? "Local checkpoint restored" : "No local restoration performed"}</p>
-              <a className="mt-2 block break-words underline" href={`/workpapers/${result.workpaper.workpaperId}`}>Open workpaper evidence →</a>
+              <a className="mt-2 block break-words underline" href={`/workpapers/${encodeURIComponent(result.workpaper.workpaperId)}`}>Open workpaper evidence →</a>
             </div>
             <details className="min-w-0 rounded-xl border border-white/10 p-3">
               <summary className="cursor-pointer text-sm font-semibold">Guard reasons, drift and checkpoint hash</summary>

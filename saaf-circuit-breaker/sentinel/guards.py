@@ -32,7 +32,7 @@ def action_guard(
         finite = isinstance(value, int) or (isinstance(value, Real) and math.isfinite(value))
         if isinstance(value, bool) or not isinstance(value, Real) or not finite:
             violations.append(f"{label} must be a finite number")
-        elif value < 0:
+        elif value < 0 or (value == 0 and math.copysign(1.0, float(value)) < 0):
             violations.append(f"{label} must be non-negative")
         elif value > 90071992547409.91 or abs(value * 100 - round(value * 100)) > 1e-7:
             violations.append(f"{label} must be safe integer EUR cents")

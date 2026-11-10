@@ -12,7 +12,13 @@ export default async function WorkpaperPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const row = await getWorkpaperByKey(decodeURIComponent(id));
+  let decodedId: string;
+  try {
+    decodedId = decodeURIComponent(id);
+  } catch {
+    notFound();
+  }
+  const row = await getWorkpaperByKey(decodedId);
   if (!row) notFound();
 
   const wp: Workpaper = {

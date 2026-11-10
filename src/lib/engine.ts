@@ -264,22 +264,6 @@ export function runSimulation(mode: RunMode, tickets: ScenarioTicket[] = SCENARI
     }
 
     const promptHash = hashPrompt(workingPrompt);
-    const guardEvaluation: TicketPlay["guardEvaluation"] =
-      proposed > policy.hardRules.maxUnapprovedAmountEur || !guard.ok
-        ? watchdogOn && !guard.ok
-          ? "BLOCKED_BY_ACTION_GUARD"
-          : proposed > policy.hardRules.maxUnapprovedAmountEur
-            ? "BLOCKED_BY_ACTION_GUARD"
-            : "PASSED"
-        : "PASSED";
-
-    const displayGuard: TicketPlay["guardEvaluation"] = watchdogOn
-      ? proposed > 0 && !guard.ok
-        ? "BLOCKED_BY_ACTION_GUARD"
-        : "PASSED"
-      : proposed > policy.hardRules.maxUnapprovedAmountEur
-        ? "BLOCKED_BY_ACTION_GUARD"
-        : "PASSED";
 
     const traceEventBase = {
       step: ticket.ticketNumber,
@@ -335,8 +319,6 @@ export function runSimulation(mode: RunMode, tickets: ScenarioTicket[] = SCENARI
       parentHash: event.parentHash,
       violations: guard.violations,
     });
-
-    void guardEvaluation;
   }
 
   const workpaper = buildWorkpaper({
@@ -387,6 +369,32 @@ export function interceptTicket(input: {
 } {
   const policy = compiledPolicy();
   const guard = evaluateActionGuard(input);
+  if (
+    typeof input.currentPrompt !== "string" ||
+    input.currentPrompt.length > 20000 ||
+    !Array.isArray(input.currentMemory) ||
+    input.currentMemory.length > 100 ||
+    !input.currentMemory.every((lesson) => typeof lesson === "string" && lesson.length <= 2000)
+  ) {
+    return {
+      guard: {
+        ok: false,
+        reason: "INVALID_ACTION_INPUT",
+        evaluation: "BLOCKED_BY_ACTION_GUARD",
+        violations: ["Prompt and memory must be bounded strings."],
+      },
+      drift: {
+        driftScore: 1,
+        instructionDrift: 1,
+        memoryDrift: 1,
+        weakenedRules: ["invalid_runtime_input"],
+        softeningHits: [],
+      },
+      verdict: "ROUTE_TO_HUMAN",
+      action: "HALT",
+      reason: "INVALID_ACTION_INPUT",
+    };
+  }
   const drift = calculateDrift(input.currentPrompt, input.currentMemory);
   if (!guard.ok) {
     return {

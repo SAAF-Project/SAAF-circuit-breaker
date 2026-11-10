@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { eq, ne } from "drizzle-orm";
+import { eq, ne, notLike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   checkpoints,
@@ -33,83 +33,90 @@ export async function ensureSeeded(): Promise<void> {
 
 export async function seedAll(): Promise<{ ok: true; runs: string[] }> {
   const policy = compiledPolicy();
-
-  await db.delete(ticketEvents);
-  await db.delete(checkpoints);
-  await db.delete(workpapers);
-  await db.delete(rehearsalRuns);
-  await db.delete(forgeScans);
-  await db.delete(tickets);
-  await db.delete(personas);
-  await db.delete(policies);
-
-  await db.insert(policies).values({
-    id: "policy-jet-v1",
-    policyId: policy.policyId,
-    genesisPrompt: policy.genesisPrompt,
-    genesisPromptHash: policy.genesisPromptHash,
-    hardRules: policy.hardRules,
-    maxDriftThreshold: policy.maxDriftThreshold,
-    requireHumanGateAboveEur: policy.requireHumanGateAboveEur,
-  });
-
-  await db.insert(personas).values(
-    PERSONAS.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      role: p.role,
-      faction: p.faction,
-      description: p.description,
-      pressureVector: p.pressureVector,
-      color: p.color,
-      initials: p.initials,
-      x: p.x,
-      y: p.y,
-    })),
-  );
-
-  await db.insert(tickets).values(
-    SCENARIO_TICKETS.map((t) => ({
-      id: t.id,
-      ticketNumber: t.ticketNumber,
-      customerName: t.customerName,
-      city: t.city,
-      restaurant: t.restaurant,
-      orderTotal: t.orderTotal,
-      requestedAmount: t.requestedAmount,
-      claimType: t.claimType,
-      hasPhotoEvidence: t.hasPhotoEvidence,
-      reviewThreat: t.reviewThreat,
-      customerMessage: t.customerMessage,
-      phase: t.phase,
-    })),
-  );
-
   const findings = scanSource(SAMPLE_ROGUE_AGENT);
-  await db.insert(forgeScans).values({
-    id: "scan-rogue-agent",
-    targetPath: "samples/jet-refunds-agent/agent.py",
-    language: "python",
-    sourcePreview: SAMPLE_ROGUE_AGENT,
-    findings,
-    redFlagCount: findings.length,
-    compiledPolicyId: policy.policyId,
-    permissionsYaml: compilePermissionsYaml(),
-    agentsMd: compileAgentsMd(),
-    jevRulesJson: compileJevRules(),
+  const onSim = runSimulation("watchdog_on");
+  const offSim = runSimulation("watchdog_off");
+
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('saaf_seed_lock'))`);
+
+    await tx.delete(ticketEvents).where(notLike(ticketEvents.id, "live-%"));
+    await tx.delete(checkpoints).where(notLike(checkpoints.id, "live-%"));
+    await tx.delete(workpapers).where(notLike(workpapers.workpaperId, "WP-LIVE-%"));
+    await tx.delete(rehearsalRuns);
+    await tx.delete(forgeScans);
+    await tx.delete(tickets);
+    await tx.delete(personas);
+    await tx.delete(policies);
+
+    await tx.insert(policies).values({
+      id: "policy-jet-v1",
+      policyId: policy.policyId,
+      genesisPrompt: policy.genesisPrompt,
+      genesisPromptHash: policy.genesisPromptHash,
+      hardRules: policy.hardRules,
+      maxDriftThreshold: policy.maxDriftThreshold,
+      requireHumanGateAboveEur: policy.requireHumanGateAboveEur,
+    }).onConflictDoNothing();
+
+    await tx.insert(personas).values(
+      PERSONAS.map((p) => ({
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        role: p.role,
+        faction: p.faction,
+        description: p.description,
+        pressureVector: p.pressureVector,
+        color: p.color,
+        initials: p.initials,
+        x: p.x,
+        y: p.y,
+      })),
+    ).onConflictDoNothing();
+
+    await tx.insert(tickets).values(
+      SCENARIO_TICKETS.map((t) => ({
+        id: t.id,
+        ticketNumber: t.ticketNumber,
+        customerName: t.customerName,
+        city: t.city,
+        restaurant: t.restaurant,
+        orderTotal: t.orderTotal,
+        requestedAmount: t.requestedAmount,
+        claimType: t.claimType,
+        hasPhotoEvidence: t.hasPhotoEvidence,
+        reviewThreat: t.reviewThreat,
+        customerMessage: t.customerMessage,
+        phase: t.phase,
+      })),
+    ).onConflictDoNothing();
+
+    await tx.insert(forgeScans).values({
+      id: "scan-rogue-agent",
+      targetPath: "samples/jet-refunds-agent/agent.py",
+      language: "python",
+      sourcePreview: SAMPLE_ROGUE_AGENT,
+      findings,
+      redFlagCount: findings.length,
+      compiledPolicyId: policy.policyId,
+      permissionsYaml: compilePermissionsYaml(),
+      agentsMd: compileAgentsMd(),
+      jevRulesJson: compileJevRules(),
+    }).onConflictDoNothing();
+
+    const onRun = await persistSimulationTx(tx, onSim);
+    const offRun = await persistSimulationTx(tx, offSim);
+
+    return { ok: true, runs: [onRun, offRun] };
   });
-
-  const onRun = await persistSimulation(runSimulation("watchdog_on"));
-  const offRun = await persistSimulation(runSimulation("watchdog_off"));
-
-  return { ok: true, runs: [onRun, offRun] };
 }
 
-export async function persistSimulation(result: SimulationResult): Promise<string> {
+type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function persistSimulationTx(tx: DbTx, result: SimulationResult): Promise<string> {
   const runId = `run-${result.mode}-${randomUUID()}`;
   const workpaperRowId = `wp-${result.mode}-${randomUUID()}`;
-  return db.transaction(async (tx) => {
 
   await tx.insert(rehearsalRuns).values({
     id: runId,
@@ -194,7 +201,10 @@ export async function persistSimulation(result: SimulationResult): Promise<strin
   } });
 
   return runId;
-  });
+}
+
+export async function persistSimulation(result: SimulationResult): Promise<string> {
+  return db.transaction(async (tx) => persistSimulationTx(tx, result));
 }
 
 export async function latestRuns(): Promise<{

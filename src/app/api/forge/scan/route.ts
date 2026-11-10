@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { forgeScans } from "@/db/schema";
@@ -13,21 +14,45 @@ import { compiledPolicy } from "@/lib/policy";
 
 export const dynamic = "force-dynamic";
 
+const ALLOWED_LANGUAGES = new Set(["python", "typescript", "javascript"]);
+
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as {
-    source?: string;
-    targetPath?: string;
-    language?: string;
-  };
-  const source = body.source?.trim() ? body.source : SAMPLE_ROGUE_AGENT;
-  const findings = scanSource(source, body.language ?? "python");
+  let rawBody: unknown;
+  try {
+    const text = await request.text();
+    rawBody = text.trim() === "" ? {} : JSON.parse(text);
+  } catch {
+    return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
+  }
+  if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+    return NextResponse.json({ error: "JSON body must be an object" }, { status: 400 });
+  }
+  const body = rawBody as Record<string, unknown>;
+  if (
+    (body.source !== undefined && (typeof body.source !== "string" || body.source.length > 100000)) ||
+    (body.targetPath !== undefined &&
+      (typeof body.targetPath !== "string" ||
+        body.targetPath.length === 0 ||
+        body.targetPath.length > 500 ||
+        body.targetPath.includes("..") ||
+        body.targetPath.includes("\0"))) ||
+    (body.language !== undefined &&
+      (typeof body.language !== "string" || !ALLOWED_LANGUAGES.has(body.language)))
+  ) {
+    return NextResponse.json({ error: "Invalid scan parameters" }, { status: 422 });
+  }
+
+  const source = typeof body.source === "string" && body.source.trim() ? body.source : SAMPLE_ROGUE_AGENT;
+  const language = typeof body.language === "string" ? body.language : "python";
+  const targetPath = typeof body.targetPath === "string" ? body.targetPath : "samples/jet-refunds-agent/agent.py";
+  const findings = scanSource(source, language);
   const policy = compiledPolicy();
-  const id = `scan-${Date.now()}`;
+  const id = `scan-${Date.now()}-${randomUUID().slice(0, 8)}`;
 
   await db.insert(forgeScans).values({
     id,
-    targetPath: body.targetPath ?? "samples/jet-refunds-agent/agent.py",
-    language: body.language ?? "python",
+    targetPath,
+    language,
     sourcePreview: source,
     findings,
     redFlagCount: findings.length,

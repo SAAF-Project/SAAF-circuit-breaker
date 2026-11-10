@@ -1,10 +1,16 @@
 import { createHash } from "node:crypto";
 
+const MAX_JSON_DEPTH = 32;
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 export function sha256(input: string | Buffer): string {
   return createHash("sha256").update(input).digest("hex");
 }
 
-export function canonicalJson(value: unknown): string {
+export function canonicalJson(value: unknown, depth = 0): string {
+  if (depth > MAX_JSON_DEPTH) {
+    throw new RangeError("Canonical JSON exceeded maximum nesting depth");
+  }
   if (value === null) return "null";
 
   switch (typeof value) {
@@ -15,15 +21,22 @@ export function canonicalJson(value: unknown): string {
       if (!Number.isFinite(value)) {
         throw new TypeError("Canonical JSON does not permit non-finite numbers");
       }
-      return JSON.stringify(value);
-    case "object":
+      return JSON.stringify(Object.is(value, -0) ? 0 : value);
+    case "object": {
       if (Array.isArray(value)) {
-        return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
+        return `[${value.map((item) => canonicalJson(item, depth + 1)).join(",")}]`;
       }
-      return `{${Object.keys(value as Record<string, unknown>)
-        .sort()
-        .map((key) => `${JSON.stringify(key)}:${canonicalJson((value as Record<string, unknown>)[key])}`)
+      const record = value as Record<string, unknown>;
+      const keys = Object.keys(record).sort();
+      for (const key of keys) {
+        if (FORBIDDEN_KEYS.has(key)) {
+          throw new TypeError(`Canonical JSON does not permit forbidden key: ${key}`);
+        }
+      }
+      return `{${keys
+        .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key], depth + 1)}`)
         .join(",")}}`;
+    }
     default:
       throw new TypeError(`Canonical JSON does not permit ${typeof value}`);
   }

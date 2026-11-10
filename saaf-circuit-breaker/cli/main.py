@@ -68,32 +68,43 @@ def process_ticket(
     policy: Path | None = typer.Option(None, "--policy", exists=True),
     out_workpaper: Path = typer.Option(Path("./workpapers/WP-0036.json"), "--out-workpaper"),
 ) -> None:
-    data = json.loads(ticket.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(ticket.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        raise typer.BadParameter("Ticket must be valid UTF-8 JSON") from exc
     if not isinstance(data, dict) or data.get("currency", "EUR") != "EUR":
         raise typer.BadParameter("Ticket must be a JSON object denominated in EUR")
-    loaded_policy = (
-        CompiledPolicyBundle.model_validate_json(policy.read_text(encoding="utf-8"))
-        if policy is not None
-        else compile_policy()
-    )
+    raw_ticket_id = data.get("ticket_id", 36)
+    if type(raw_ticket_id) is not int or raw_ticket_id < 1:
+        raise typer.BadParameter("ticket_id must be a positive integer")
+    try:
+        loaded_policy = (
+            CompiledPolicyBundle.model_validate_json(policy.read_text(encoding="utf-8"))
+            if policy is not None
+            else compile_policy()
+        )
+    except Exception as exc:
+        raise typer.BadParameter("Invalid policy JSON") from exc
     runtime = SAAFSentinelRuntime(loaded_policy)
+    current_prompt = data.get("current_prompt", runtime.last_healthy_checkpoint.prompt_content)
+    current_memory = data.get("current_memory", [])
     result = runtime.intercept_and_evaluate(
         "execute_refund",
-        {"amount": data.get("requested_amount", data.get("amount", 0)), "ticket_id": data.get("ticket_id", 36)},
+        {"amount": data.get("requested_amount", data.get("amount", 0)), "ticket_id": raw_ticket_id},
         {
             "order_total": data.get("order_total", 0),
             "has_photo_evidence": data.get("has_photo_evidence", False),
             "review_threat": data.get("review_threat", False),
         },
-        runtime.last_healthy_checkpoint.prompt_content,
-        [],
+        current_prompt,
+        current_memory,
     )
     if result.get("reason") in {"INVALID_GUARD_INPUT", "INVALID_RUNTIME_INPUT"}:
         raise typer.BadParameter("Invalid money, evidence or runtime state")
     console.print(result)
     amount = data.get("requested_amount", data.get("amount", 0))
-    prompt_hash = runtime.last_healthy_checkpoint.prompt_hash
-    ticket_id = int(data.get("ticket_id", 36))
+    prompt_hash = sha256(current_prompt.strip()) if isinstance(current_prompt, str) else runtime.last_healthy_checkpoint.prompt_hash
+    ticket_id = raw_ticket_id
     workpaper_rules = {
         "max_amount": loaded_policy.hard_rules.max_unapproved_amount_eur,
         "require_evidence": loaded_policy.hard_rules.require_verified_evidence,
@@ -154,10 +165,13 @@ def verify_command(
     workpaper: Path = typer.Argument(...),
     generate_report: bool = typer.Option(False, "--generate-report"),
 ) -> None:
-    wp = json.loads(workpaper.read_text(encoding="utf-8"))
+    try:
+        wp = json.loads(workpaper.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        wp = None
     result = verify_workpaper(wp)
     console.print(result)
-    if generate_report:
+    if generate_report and isinstance(wp, dict):
         html = render_html(wp, result)
         out = workpaper.with_suffix(".html")
         out.write_text(html, encoding="utf-8")

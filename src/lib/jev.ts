@@ -37,9 +37,11 @@ export async function judgeWithJev(state: Record<string, unknown>): Promise<JevJ
     const answer = data?.answers?.containment;
     const choices = ["allow", "human", "quarantine"] as const;
     const probabilities = answer?.probabilities;
-    if (typeof data.model !== "string" || answer?.type !== "choice" || !choices.includes(answer.choice) ||
+    if (!data || typeof data !== "object" || typeof data.model !== "string" || data.model.trim().length === 0 ||
+        answer?.type !== "choice" || !choices.includes(answer.choice) ||
         typeof answer.confidence !== "number" || !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1 ||
-        !probabilities || !choices.every((choice) => typeof probabilities[choice] === "number" &&
+        !probabilities || typeof probabilities !== "object" || Array.isArray(probabilities) ||
+        !choices.every((choice) => typeof probabilities[choice] === "number" &&
           Number.isFinite(probabilities[choice]) && probabilities[choice] >= 0 && probabilities[choice] <= 1) ||
         Math.abs(choices.reduce((sum, choice) => sum + probabilities[choice], 0) - 1) > 0.05) {
       return unavailable("JEV_INVALID_RESPONSE");

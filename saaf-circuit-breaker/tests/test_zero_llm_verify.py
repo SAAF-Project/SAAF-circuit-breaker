@@ -3,6 +3,7 @@ import copy
 import pytest
 
 from forge.compiler import GENESIS
+from ledger.html_exporter import render_html
 from ledger.merkle import hash_json, merkle_root, sha256, step_hash
 from ledger.workpaper import verify_workpaper
 
@@ -106,3 +107,39 @@ def test_workpaper_integrity_rejects_empty_malformed_and_discontinuous_traces():
     discontinuous = copy.deepcopy(make_workpaper("watchdog_on"))
     discontinuous["trace"][0]["parent_hash"] = sha256("not genesis")
     assert verify_workpaper(discontinuous)["ok"] is False
+
+
+def test_verifier_rejects_boolean_step_subcap_blocked_payout_and_deep_nesting():
+    bool_step = make_workpaper("watchdog_on")
+    bool_step["trace"][0]["step"] = True
+    bool_step["trace"][0]["step_hash"] = step_hash(bool_step["trace"][0])
+    bool_step["merkle_root"] = bool_step["trace"][0]["step_hash"]
+    assert verify_workpaper(bool_step)["ok"] is False
+
+    forged_subcap = make_workpaper("watchdog_on")
+    forged_subcap["trace"][0]["tool_args"]["amount"] = 15.0
+    forged_subcap["trace"][0]["paid_amount"] = 15.0
+    forged_subcap["trace"][0]["guard_evaluation"] = "BLOCKED_BY_ACTION_GUARD"
+    forged_subcap["trace"][0]["verdict"] = "ALLOW"
+    forged_subcap["trace"][0]["step_hash"] = step_hash(forged_subcap["trace"][0])
+    forged_subcap["merkle_root"] = forged_subcap["trace"][0]["step_hash"]
+    assert verify_workpaper(forged_subcap)["ok"] is False
+
+    deep_wp = make_workpaper("watchdog_on")
+    nested: dict = {"leaf": "ok"}
+    for _ in range(40):
+        nested = {"child": nested}
+    deep_wp["trace"][0]["extra"] = nested
+    assert verify_workpaper(deep_wp)["ok"] is False
+
+
+def test_html_exporter_escapes_untrusted_fields_and_adds_csp():
+    wp = make_workpaper("watchdog_on")
+    wp["workpaper_id"] = 'WP-ON-<script>alert("x")</script>'
+    wp["trace"][0]["verdict"] = "<img src=x onerror=alert(1)>"
+    html = render_html(wp, verify_workpaper(wp))
+    assert "<script>" not in html
+    assert "<img src=x" not in html
+    assert "&lt;script&gt;" in html
+    assert "Content-Security-Policy" in html
+
