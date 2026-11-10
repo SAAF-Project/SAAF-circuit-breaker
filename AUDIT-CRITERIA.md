@@ -98,3 +98,18 @@ Workpaper JSON is the project's own documented format. It is not asserted to con
 The recorded UI release passed 13 TypeScript tests and 26 live acceptance checks; the earlier Python release recorded 34 tests. These are linked historical execution results, not a claim that organization CI or an independent auditor reran them.
 
 Reproduce the code gates using the root README's private-environment/database setup, then `npm test`, `npm run typecheck`, and `npm run build`. With the live server and real server-only Jev credential configured, run `node scripts/verify-live.mjs http://127.0.0.1:3189` against a local synthetic demo database; that runner persists synthetic rehearsal/session records. See the nested Python README for offline CLI installation and verification.
+
+## 7. Observability
+
+Logged today (read from the code; `src/db/schema.ts`, `src/lib/live-sentinel.ts`):
+
+- **Live Sentinel:** each intercepted call appends an event to the session trace (`sentinel_sessions.trace`). The event holds hashes of the customer input and working prompt, the drift score, the guard evaluation, the verdict, the rollback flag and restored checkpoint hash, the policy inputs, the state before, proposed and after, the full Jev result (status, model, choice, confidence, probabilities, latency, error), the reason, the human-review status, `paymentExecuted`, and a parent-linked step hash.
+- **Rehearsal:** one `ticket_events` row per ticket (verdict, reason, drift scores, weakened rules, working prompt and hash, memory snapshot, checkpoint, step and parent hash), plus `checkpoints` and `rehearsal_runs`.
+- **Workpapers:** `workpapers` stores the genesis, trace, Merkle root, seal and verification result.
+- **Forge:** `forge_scans` stores scan results.
+
+Missing:
+
+- TODO(owner): confirm whether failed requests and errors are logged outside the trace. No application logging (`console.*`) was found in `src/lib`.
+- No operator identity per action, and no tamper evidence beyond unsigned hashes (see section 5).
+- TODO(owner): state the retention and access controls for the database that holds these records.
