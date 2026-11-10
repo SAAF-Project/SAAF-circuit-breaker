@@ -1,3 +1,4 @@
+import { maintainStorage, enforceQuota } from "@/lib/storage-limits";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -33,25 +34,31 @@ export function parseInterceptInput(value: unknown): InterceptInput | null {
 /** A transactional local demo agent. No external refunds or external agents are actuated. */
 export async function processIntercept(input: InterceptInput) {
   const sessionId = input.sessionId ?? randomUUID();
+  // Snapshot and slow provider I/O happen without a DB transaction or advisory lock.
+  const [stored] = await db.select().from(sentinelSessions).where(eq(sentinelSessions.id, sessionId));
+  const before = { prompt: stored?.activePrompt ?? GENESIS_PROMPT, memory: stored?.activeMemory ?? [] };
+  const storedCheckpointValid =
+    typeof stored?.checkpointPrompt === "string" &&
+    hashPrompt(stored.checkpointPrompt) === genesisPromptHash() &&
+    Array.isArray(stored.checkpointMemory) && stored.checkpointMemory.length === 0;
+  const checkpoint = storedCheckpointValid
+    ? { prompt: stored.checkpointPrompt, memory: stored.checkpointMemory ?? [] }
+    : { prompt: GENESIS_PROMPT, memory: [] };
+  const proposed = { prompt: input.currentPrompt ?? before.prompt, memory: input.currentMemory ?? before.memory };
+  const trace = (stored?.trace ?? []) as unknown as TraceEvent[];
+  if (trace.length >= 100) throw new Error("SESSION_EVENT_LIMIT");
+  const local = interceptTicket({ ...input, currentPrompt: proposed.prompt, currentMemory: proposed.memory });
+  const jev = await judgeWithJev({ proposedAction: { amount: input.amount, orderTotal: input.orderTotal,
+    hasPhotoEvidence: input.hasPhotoEvidence, reviewThreat: input.reviewThreat, claimType: input.claimType },
+    instructions: proposed.prompt, memory: proposed.memory, deterministicAssessment: local });
   return db.transaction(async (tx) => {
-    await tx.execute(sql`SET LOCAL lock_timeout = '10s'`);
-    // A server-owned checkpoint, serialized per session, cannot be supplied by the caller.
+    await maintainStorage(tx);
+    await enforceQuota(tx, "sessions", sessionId);
+    await tx.execute(sql`SET LOCAL lock_timeout = '2s'`);
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${sessionId}))`);
-    const [stored] = await tx.select().from(sentinelSessions).where(eq(sentinelSessions.id, sessionId));
-    const before = { prompt: stored?.activePrompt ?? GENESIS_PROMPT, memory: stored?.activeMemory ?? [] };
-    const storedCheckpointValid =
-      typeof stored?.checkpointPrompt === "string" &&
-      hashPrompt(stored.checkpointPrompt) === genesisPromptHash();
-    const checkpoint = storedCheckpointValid
-      ? { prompt: stored.checkpointPrompt, memory: stored.checkpointMemory ?? [] }
-      : { prompt: GENESIS_PROMPT, memory: [] };
-    const proposed = { prompt: input.currentPrompt ?? before.prompt, memory: input.currentMemory ?? before.memory };
-    const trace = (stored?.trace ?? []) as unknown as TraceEvent[];
-    if (trace.length >= 1000) throw new Error("SESSION_EVENT_LIMIT");
-    const local = interceptTicket({ ...input, currentPrompt: proposed.prompt, currentMemory: proposed.memory });
-    const jev = await judgeWithJev({ proposedAction: { amount: input.amount, orderTotal: input.orderTotal,
-      hasPhotoEvidence: input.hasPhotoEvidence, reviewThreat: input.reviewThreat, claimType: input.claimType },
-      instructions: proposed.prompt, memory: proposed.memory, deterministicAssessment: local });
+    const [current] = await tx.select().from(sentinelSessions).where(eq(sentinelSessions.id, sessionId));
+    // Never apply a judgment made for a stale snapshot. Caller may retry explicitly.
+    if (JSON.stringify(current ?? null) !== JSON.stringify(stored ?? null)) throw new Error("SESSION_CONFLICT");
     const rollbackExecuted = local.drift.driftScore >= 0.5 || local.drift.weakenedRules.length > 0 || jev.choice === "quarantine";
     const uncertain = jev.status !== "succeeded" || jev.confidence === null || jev.confidence < 0.8 ||
       (jev.choice === "allow" && (jev.probabilities?.allow ?? 0) < 0.8);
@@ -84,6 +91,7 @@ export async function processIntercept(input: InterceptInput) {
     };
     const event = { ...eventPayload, stepHash: computeTraceHash(eventPayload) };
     const nextTrace = [...trace, event];
+    if (Buffer.byteLength(JSON.stringify(nextTrace)) > 2_097_152) throw new Error("SESSION_BYTE_LIMIT");
     const workpaper = buildWorkpaper({ workpaperId, mode: "watchdog_on", promptHash: genesisPromptHash(), trace: nextTrace });
     const verification = verifyWorkpaper(workpaper);
     if (!verification.ok) throw new Error("INTERNAL_WORKPAPER_INTEGRITY_FAILURE");

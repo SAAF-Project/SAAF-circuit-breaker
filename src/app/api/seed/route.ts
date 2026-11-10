@@ -9,6 +9,5 @@ export async function POST() {
 }
 
 export async function GET() {
-  const result = await seedAll();
-  return NextResponse.json(result);
+  return NextResponse.json({ error: "Use POST to seed" }, { status: 405, headers: { Allow: "POST" } });
 }

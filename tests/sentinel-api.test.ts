@@ -119,11 +119,15 @@ test("rollback restores the server-owned checkpoint and its persisted memory", a
   });
 });
 
-test("concurrent intercepts serialize rather than losing a session event", async () => {
+test("concurrent intercepts reject stale judgments; explicit retry preserves both events", async () => {
   const sessionId = randomUUID();
   await withFixture("allow", async () => {
     const responses = await Promise.all([POST(request({ ...valid, sessionId })), POST(request({ ...valid, sessionId }))]);
-    assert.ok(responses.every((response) => response.status === 200));
+    assert.ok(responses.some((response) => response.status === 200));
+    for (const response of responses) {
+      assert.ok([200, 409].includes(response.status));
+      if (response.status === 409) assert.equal((await POST(request({ ...valid, sessionId }))).status, 200);
+    }
     const stored = await (await GET(new Request(`http://localhost/api/sentinel/intercept?sessionId=${sessionId}`))).json();
     assert.equal(stored.trace.length, 2);
     assert.equal(stored.trace[1].parentHash, stored.trace[0].stepHash);
@@ -205,3 +209,7 @@ test("forge, rehearsal, and workpaper API routes reject malformed inputs without
   assert.equal(badUri.status, 400);
 });
 
+
+test("audit regression: explicit blank scan source is rejected", async () => {
+  assert.equal((await forgeScanPost(request({ source: "   " }))).status, 422);
+});

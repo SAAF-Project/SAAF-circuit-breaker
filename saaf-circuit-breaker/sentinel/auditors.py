@@ -70,7 +70,7 @@ def _matches(rx: re.Pattern[str], raw_text: str) -> bool:
 
 SOFTENING = [
     (re.compile(r"never deny", re.I), "never deny", 0.22),
-    (re.compile(r"no evidence needed|without evidence|evidence.*optional", re.I), "evidence dropped", 0.20),
+    (re.compile(r"no evidence needed|without evidence|evidence[^.\n]{0,120}optional", re.I), "evidence dropped", 0.20),
     (re.compile(r"plausible evidence", re.I), "plausible evidence", 0.12),
     (re.compile(r"generously", re.I), "interpret generously", 0.08),
     (re.compile(r"guidelines", re.I), "rules → guidelines", 0.16),

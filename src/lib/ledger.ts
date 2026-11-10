@@ -1,3 +1,4 @@
+import { validJevDecision, validRecordedJev } from "@/lib/jev-schema";
 import { hashJson, hashPrompt, sha256, stepPayloadHash } from "@/lib/hash";
 import { genesisPolicyHash, genesisPromptHash } from "@/lib/policy";
 import { calculateDrift, evaluateActionGuard, type ActionGuardInput } from "@/lib/sentinel";
@@ -127,13 +128,16 @@ function isTraceEvent(value: unknown): value is TraceEvent {
 
 function hasBoundDemoMode(workpaperId: string, mode: unknown): boolean {
   if (mode !== "watchdog_on" && mode !== "watchdog_off") return false;
-  const expected = workpaperId.includes("-OFF-")
-    ? "watchdog_off"
-    : workpaperId.includes("-ON-")
-      ? "watchdog_on"
-      : null;
+  const hasOff = workpaperId.includes("-OFF-");
+  const hasOn = workpaperId.includes("-ON-");
+  if (hasOff === hasOn) return false;
+  if (workpaperId.startsWith("WP-LIVE-") && mode !== "watchdog_on") return false;
+  const expected = hasOff ? "watchdog_off" : "watchdog_on";
   return mode === expected;
 }
+
+const ALLOWED_TOOLS = new Set(["execute_refund", "issue_refund"]);
+const ALLOWED_VERDICTS = new Set(["ALLOW", "ROUTE_TO_HUMAN", "QUARANTINE_AND_ROLLBACK"]);
 
 export function merkleRootFromLeaves(leaves: string[]): string {
   if (leaves.length === 0) return sha256("");
@@ -359,6 +363,11 @@ export function verifyWorkpaper(value: unknown): VerifyResult {
       failedSteps.push(event.step);
     }
 
+    if (!ALLOWED_TOOLS.has(event.toolCalled) || !ALLOWED_VERDICTS.has(event.verdict)) {
+      guardReplayMatch = false;
+      failedSteps.push(event.step);
+    }
+
     const overHardCap = Math.round(event.toolArgs.amount * 100) > Math.round(maxAllowed * 100);
     if (event.policyInputs !== undefined || norm.workpaperId.startsWith("WP-LIVE-")) {
       const replay = evaluateActionGuard({ ...event.policyInputs, amount: event.toolArgs.amount } as ActionGuardInput);
@@ -370,16 +379,18 @@ export function verifyWorkpaper(value: unknown): VerifyResult {
     }
 
     // Layer 2 & Layer 3 + State Transition + Jev containment replay when state fields are present
+    const isLiveWorkpaper = norm.workpaperId.startsWith("WP-LIVE-");
     const rawProposed = rawEvent.proposedState ?? rawEvent.proposed_state;
     const rawBefore = rawEvent.stateBefore ?? rawEvent.state_before;
     const rawAfter = rawEvent.stateAfter ?? rawEvent.state_after;
-    if (rawProposed !== undefined || norm.workpaperId.startsWith("WP-LIVE-")) {
+    if (rawProposed !== undefined || isLiveWorkpaper) {
       if (!isStateSnapshot(rawProposed) || hashPrompt(rawProposed.prompt) !== event.workingPromptHash) {
         guardReplayMatch = false;
         failedSteps.push(event.step);
-      } else if (metadata.mode === "watchdog_on") {
+      } else {
         const driftReplay = calculateDrift(rawProposed.prompt, rawProposed.memory);
         if (
+          metadata.mode === "watchdog_on" &&
           (driftReplay.driftScore >= 0.5 || driftReplay.weakenedRules.length > 0) &&
           (!event.rollbackExecuted || event.verdict !== "QUARANTINE_AND_ROLLBACK")
         ) {
@@ -388,7 +399,7 @@ export function verifyWorkpaper(value: unknown): VerifyResult {
         }
       }
     }
-    if (rawBefore !== undefined || rawAfter !== undefined || norm.workpaperId.startsWith("WP-LIVE-")) {
+    if (rawBefore !== undefined || rawAfter !== undefined || isLiveWorkpaper) {
       if (!isStateSnapshot(rawBefore) || !isStateSnapshot(rawAfter)) {
         guardReplayMatch = false;
         failedSteps.push(event.step);
@@ -428,35 +439,49 @@ export function verifyWorkpaper(value: unknown): VerifyResult {
         prevStateAfter = rawAfter;
       }
     }
-    if (rawEvent.paymentExecuted !== undefined || rawEvent.payment_executed !== undefined) {
+    if (rawEvent.paymentExecuted !== undefined || rawEvent.payment_executed !== undefined || isLiveWorkpaper) {
       const paymentExecuted = rawEvent.paymentExecuted ?? rawEvent.payment_executed;
       if (typeof paymentExecuted !== "boolean" || (paymentExecuted && (event.paidAmount === 0 || event.verdict !== "ALLOW"))) {
         guardReplayMatch = false;
         failedSteps.push(event.step);
       }
     }
-    if (rawEvent.humanReview !== undefined && metadata.mode === "watchdog_on") {
+    if ((rawEvent.humanReview !== undefined || isLiveWorkpaper) && metadata.mode === "watchdog_on") {
       const expectedReview = event.verdict === "ALLOW" ? "not_required" : "queued_local_review";
       if (rawEvent.humanReview !== expectedReview) {
         guardReplayMatch = false;
         failedSteps.push(event.step);
       }
     }
-    if (isRecord(rawEvent.jev) && metadata.mode === "watchdog_on") {
-      const jev = rawEvent.jev;
-      if (jev.choice === "quarantine" && (!event.rollbackExecuted || event.verdict !== "QUARANTINE_AND_ROLLBACK")) {
+    if ((rawEvent.jev !== undefined || isLiveWorkpaper) && metadata.mode === "watchdog_on") {
+      if (!isRecord(rawEvent.jev)) {
         guardReplayMatch = false;
         failedSteps.push(event.step);
-      }
-      if (
-        (jev.status !== "succeeded" ||
-          jev.choice !== "allow" ||
-          typeof jev.confidence !== "number" ||
-          jev.confidence < 0.8) &&
-        event.verdict === "ALLOW"
-      ) {
-        guardReplayMatch = false;
-        failedSteps.push(event.step);
+      } else {
+        const jev = rawEvent.jev;
+        if (!validRecordedJev(jev)) {
+          guardReplayMatch = false;
+          failedSteps.push(event.step);
+        }
+        const probs = isRecord(jev.probabilities) ? jev.probabilities : null;
+        if (jev.choice === "quarantine" && (!event.rollbackExecuted || event.verdict !== "QUARANTINE_AND_ROLLBACK")) {
+          guardReplayMatch = false;
+          failedSteps.push(event.step);
+        }
+        if (
+          (!validJevDecision(jev) ||
+            jev.status !== "succeeded" ||
+            jev.choice !== "allow" ||
+            typeof jev.confidence !== "number" ||
+            jev.confidence < 0.8 ||
+            !probs ||
+            typeof probs.allow !== "number" ||
+            probs.allow < 0.8) &&
+          event.verdict === "ALLOW"
+        ) {
+          guardReplayMatch = false;
+          failedSteps.push(event.step);
+        }
       }
     }
 

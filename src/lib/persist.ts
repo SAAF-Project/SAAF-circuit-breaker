@@ -1,5 +1,7 @@
+import { verifyStoredWorkpaper } from "@/lib/stored-workpaper";
+import { maintainStorage, enforceQuota } from "@/lib/storage-limits";
 import { randomUUID } from "node:crypto";
-import { eq, ne, notLike, sql } from "drizzle-orm";
+import { desc, eq, ne, notLike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   checkpoints,
@@ -204,7 +206,11 @@ async function persistSimulationTx(tx: DbTx, result: SimulationResult): Promise<
 }
 
 export async function persistSimulation(result: SimulationResult): Promise<string> {
-  return db.transaction(async (tx) => persistSimulationTx(tx, result));
+  return db.transaction(async (tx) => {
+    await maintainStorage(tx);
+    await enforceQuota(tx, "runs");
+    return persistSimulationTx(tx, result);
+  });
 }
 
 export async function latestRuns(): Promise<{
@@ -220,8 +226,8 @@ export async function latestRuns(): Promise<{
 export async function getDashboard() {
   await ensureSeeded();
   const [on, off] = [runSimulation("watchdog_on"), runSimulation("watchdog_off")];
-  const [scan] = await db.select().from(forgeScans).limit(1);
-  const wpRows = await db.select().from(workpapers);
+  const [scan] = await db.select().from(forgeScans).where(eq(forgeScans.id, "scan-rogue-agent")).limit(1);
+  const wpRows = await db.select().from(workpapers).orderBy(desc(workpapers.createdAt), desc(workpapers.id)).limit(50);
   const personaRows = await db.select().from(personas);
   const ticketRows = await db.select().from(tickets);
   const runRows = await db.select().from(rehearsalRuns);
@@ -241,7 +247,7 @@ export async function getDashboard() {
       id: w.id,
       workpaperId: w.workpaperId,
       merkleRoot: w.merkleRoot,
-      verified: w.verified,
+      verified: verifyStoredWorkpaper(w).ok,
       auditSeal: w.auditSeal,
       createdAt: w.createdAt,
     })),

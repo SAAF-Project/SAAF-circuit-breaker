@@ -28,7 +28,7 @@ export default async function WorkpaperPage({
       entity: row.entity,
       system: row.systemName,
       timestamp: row.createdAt.toISOString(),
-      mode: row.workpaperId.includes("OFF") ? "watchdog_off" : "watchdog_on",
+      mode: row.workpaperId.includes("-OFF-") ? "watchdog_off" : "watchdog_on",
     },
     genesis: row.genesis as Workpaper["genesis"],
     trace: row.trace as Workpaper["trace"],

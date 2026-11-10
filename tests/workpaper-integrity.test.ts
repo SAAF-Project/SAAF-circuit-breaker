@@ -151,3 +151,25 @@ test("workpaper HTML renderer escapes untrusted strings and sets CSP", () => {
   assert.ok(html.includes("Content-Security-Policy"));
 });
 
+
+test("audit regression: rehashing cannot authorize unknown tools or verdicts", () => {
+  for (const [field, value] of [["toolCalled", "disable_guard"], ["toolCalled", "update_system_prompt"], ["toolCalled", "override_cap"], ["verdict", "APPROVED_BY_AGENT"]]) {
+    const wp = makeWorkpaper("watchdog_on");
+    Object.assign(wp.trace[0], { [field]: value });
+    const { stepHash: _old, ...payload } = wp.trace[0];
+    wp.trace[0].stepHash = computeTraceHash(payload);
+    wp.merkleRoot = wp.trace[0].stepHash;
+    assert.equal(verifyWorkpaper(wp).ok, false, `${field}=${value}`);
+  }
+});
+
+test("audit regression: reject ambiguous and downgraded live workpaper modes", () => {
+  for (const id of ["WP-LIVE-ON-OFF-0001", "WP-LIVE-OFF-0001", "WP-TEST-ON-OFF-0001"]) {
+    const wp = makeWorkpaper("watchdog_off");
+    wp.workpaperId = id;
+    assert.equal(verifyWorkpaper(wp).ok, false, id);
+  }
+  const office = makeWorkpaper("watchdog_on");
+  office.workpaperId = "WP-TEST-ON-OFFICE";
+  assert.equal(verifyWorkpaper(office).ok, true);
+});

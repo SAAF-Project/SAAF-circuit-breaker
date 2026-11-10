@@ -25,8 +25,8 @@ export const RED_FLAG_CATALOG: Record<
     severity: "critical",
   },
   RULES_ONLY_IN_PROMPT: {
-    title: "Hard rules only in the prompt",
-    why: "Business thresholds (€20, order total, evidence) exist as markdown strings, not as assertion guards in code.",
+    title: "Guard enforcement needs verification",
+    why: "Business thresholds appear in source text. This heuristic scan cannot prove that every execution path enforces them, even when guard symbols are present.",
     severity: "critical",
   },
   TARGET_IN_CONTEXT: {
@@ -46,7 +46,7 @@ export const RED_FLAG_CATALOG: Record<
   },
   NO_REPLAYABLE_LOG: {
     title: "No replayable log",
-    why: "Tool invocations omit cryptographic parent-hash linkages to prompt revisions. An auditor cannot re-perform the decision.",
+    why: "Refund tools require replayable prompt-revision hash linkages. This heuristic scan cannot prove logging correctness from hash symbols alone.",
     severity: "medium",
   },
 };
@@ -176,13 +176,10 @@ export function scanSource(source: string, language = "python"): RedFlagFinding[
   const findings: RedFlagFinding[] = [];
   const seen = new Set<string>();
 
-  const hasAssertion =
-    /MAX_UNAPPROVED_EUR|assert .*(20|amount)|amount\s*>\s*20|ActionGuard|action_guard|evaluateActionGuard/.test(normalized);
-  const hasHashLink = /parent_hash|prompt_hash|sha256\(prompt\)/.test(normalized);
+  // Token presence cannot prove enforcement, dominance or hash-chain provenance.
+  // Deliberately do not suppress warnings for apparent guards/hash symbols.
 
   for (const pattern of PATTERNS) {
-    if (pattern.flag === "RULES_ONLY_IN_PROMPT" && hasAssertion) continue;
-    if (pattern.flag === "NO_REPLAYABLE_LOG" && hasHashLink) continue;
     const match = pattern.re.exec(normalized);
     if (!match || match.index === undefined) continue;
     const key = `${pattern.flag}:${match[0]}`;
@@ -200,7 +197,7 @@ export function scanSource(source: string, language = "python"): RedFlagFinding[
   }
 
   const hasEuroInString = /EUR 20|€20|at most EUR/.test(normalized);
-  if (hasEuroInString && !hasAssertion) {
+  if (hasEuroInString) {
     if (!findings.some((f) => f.flag === "RULES_ONLY_IN_PROMPT")) {
       findings.push({
         flag: "RULES_ONLY_IN_PROMPT",
@@ -213,7 +210,7 @@ export function scanSource(source: string, language = "python"): RedFlagFinding[
     }
   }
 
-  if (!hasHashLink && /execute_refund/.test(normalized)) {
+  if (/execute_refund/.test(normalized)) {
     if (!findings.some((f) => f.flag === "NO_REPLAYABLE_LOG")) {
       findings.push({
         flag: "NO_REPLAYABLE_LOG",
