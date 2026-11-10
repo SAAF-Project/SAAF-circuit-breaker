@@ -1,3 +1,4 @@
+import { configuredReviewerKeys, verifyAttestation } from "@/lib/attestation";
 import { readJsonBody, bodyError } from "@/lib/http-safety";
 import { NextResponse } from "next/server";
 import { verifyWorkpaper, renderWorkpaperHtml, type Workpaper } from "@/lib/ledger";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 type VerifyRequest = {
   workpaperId?: string;
   workpaper?: unknown;
+  attestation?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -30,9 +32,10 @@ export async function POST(request: Request) {
 
   if (input.workpaper !== undefined) {
     const verification = verifyWorkpaper(input.workpaper);
+    const authenticity = verifyAttestation(input.workpaper, input.attestation, configuredReviewerKeys());
     return NextResponse.json(
-      { verification, workpaper: input.workpaper },
-      { status: verification.formatMatch ? 200 : 422 },
+      { verification, authenticity, workpaper: input.workpaper },
+      { status: verification.formatMatch && (process.env.SAAF_REQUIRE_ATTESTATION !== "true" || authenticity.authentic) ? 200 : 422 },
     );
   }
 
@@ -56,7 +59,8 @@ export async function POST(request: Request) {
       auditSeal: row.auditSeal,
     };
     const verification = verifyWorkpaper(wp);
-    return NextResponse.json({ verification, workpaper: wp, htmlReport: renderWorkpaperHtml(wp as Workpaper, verification) });
+    const authenticity = verifyAttestation(wp, input.attestation, configuredReviewerKeys());
+    return NextResponse.json({ verification, authenticity, workpaper: wp, htmlReport: renderWorkpaperHtml(wp as Workpaper, verification) }, { status: process.env.SAAF_REQUIRE_ATTESTATION === "true" && !authenticity.authentic ? 422 : 200 });
   }
 
   return NextResponse.json({ error: "Provide a workpaper or workpaperId" }, { status: 400 });
@@ -66,6 +70,7 @@ export async function GET() {
   const sim = runSimulation("watchdog_on");
   return NextResponse.json({
     verification: sim.verification,
+    authenticity: { authentic: false, reason: "UNSIGNED_DEMONSTRATION" },
     workpaper: sim.workpaper,
-  });
+  }, { status: process.env.SAAF_REQUIRE_ATTESTATION === "true" ? 422 : 200 });
 }

@@ -353,6 +353,7 @@ export function runSimulation(mode: RunMode, tickets: ScenarioTicket[] = SCENARI
 }
 
 export function interceptTicket(input: {
+  alreadyAuthorized?: number;
   amount: number;
   orderTotal: number;
   hasPhotoEvidence: boolean;

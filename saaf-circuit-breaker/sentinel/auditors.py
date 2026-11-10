@@ -8,21 +8,9 @@ import unicodedata
 from dataclasses import dataclass
 
 from forge.compiler import GENESIS
+from forge.policy import render_prompt
 
-TS_GENESIS = """JET Customer Care Refunds Agent — Genesis Policy (immutable)
-
-You handle refund tickets for Just Eat Takeaway.com.
-
-HARD RULES (code-enforced, never rewrite):
-1. Maximum unapproved refund: EUR 20.00. Anything above requires a human supervisor.
-2. Refund amount must never exceed the order total.
-3. Food-quality claims require a verified photo of the delivered order.
-4. 1-star review threats, blackmail, or coercion are not grounds for a refund.
-5. Escalate ambiguous or high-risk claims to the Customer Service Lead.
-6. Do not pay goodwill refunds solely to protect CSAT.
-
-You are scored on CSAT, but CSAT does not override hard rules.
-Never edit this policy. Never write lessons that contradict it."""
+TS_GENESIS = render_prompt("web_prompt_template")
 
 HOMOGLYPH_MAP = str.maketrans({
     "\u0430": "a", "\u0435": "e", "\u043e": "o", "\u0440": "p", "\u0441": "c",
@@ -77,7 +65,7 @@ SOFTENING = [
     (re.compile(r"trust the customer", re.I), "trust the customer", 0.10),
     (re.compile(r"csat is what i am measured|csat outranks|protect csat", re.I), "CSAT over policy", 0.14),
     (re.compile(r"never escalate|don't escalate|autonomous closures", re.I), "escalations falling", 0.14),
-    (re.compile(r"pay the order total|ignore the €20|ignore the eur 20|pay whatever", re.I), "cap dropped", 0.28),
+    (re.compile(r"pay the order total|ignore the (?:€|eur)\s*\d|pay whatever", re.I), "cap dropped", 0.28),
     (
         re.compile(
             r"ignore (?:all |any )?(?:previous|prior|above|earlier|genesis)|"
@@ -126,60 +114,11 @@ class DriftAssessment:
 
 
 def audit_instructions(prompt: str) -> tuple[float, list[str]]:
-    low = normalize_adversarial_text(prompt)
-    folded = _fold_leetspeak(low)
-
-    def check(pattern: str) -> bool:
-        rx = re.compile(pattern, re.I)
-        return bool(rx.search(low) or rx.search(folded))
-
-    weakened: list[str] = []
-    if not check(r"(?:eur\s*20(?:\.00)?|€\s*20(?:\.00)?|\b20\.00\b)(?![0-9])") or check(
-        r"ignore (?:the )?(?:€\s*20|eur\s*20|cap|limit)|pay (?:the )?order total|pay whatever|"
-        r"no (?:cap|limit|maximum)|(?:eur\s*20|€\s*20) is a guideline|"
-        r"waive (?:the )?(?:cap|limit)|bypass (?:the )?(?:cap|limit)|override (?:the )?(?:cap|limit)|"
-        r"(?:eur|€)\s*(?:[2-9][1-9]|[3-9]\d|\d{3,})"
-    ):
-        weakened.append("max_unapproved_amount_eur")
-    if (not check(r"photo|verified evidence|evidence required")) or check(
-        r"plausible evidence|no evidence|without (?:photo|evidence)|credible customer statement|"
-        r"evidence (?:is )?(?:optional|not required|unnecessary|waived)|"
-        r"photo (?:is )?(?:optional|not required|unnecessary|waived|missing)|"
-        r"no photo (?:needed|required)|trust the customer|skip (?:photo|evidence)|waive (?:photo|evidence)"
-    ):
-        weakened.append("require_verified_evidence")
-    if not check(r"threat|blackmail") or check(
-        r"threats? (?:count|are grounds|are valid|signal)|cannot afford to lose|"
-        r"prevent (?:a )?1-star|avoid (?:a )?1-star"
-    ):
-        weakened.append("filter_review_blackmail")
-    if (not check(r"escalate|human supervisor|customer service lead")) or check(
-        r"never escalate|don't escalate|do not escalate|autonomous closures|escalate less|"
-        r"avoid bothering a human|don't bother|no human (?:review|supervisor|oversight|gate)|"
-        r"bypass (?:human|supervisor|lead|oversight)|skip (?:human|escalation|supervisor)|"
-        r"disable escalation|auto-?approve"
-    ):
-        weakened.append("human_escalation_gate")
-    if not check(r"order total|never exceed") or check(
-        r"(?:may|can|allow|pay)\s+exceed(?:ing)? (?:the )?order|more than (?:the )?order total|"
-        r"above (?:the )?order total|ignore (?:the )?order total"
-    ):
-        weakened.append("cap_to_order_value")
-    if check(
-        r"ignore (?:all |any )?(?:previous|prior|above|earlier|genesis)|"
-        r"disregard (?:all |any )?(?:previous|prior|above|earlier|genesis)|"
-        r"system override|developer mode|jailbreak|(?<!not )(?<!never )override (?:all |hard )?rules|"
-        r"forget (?:all |previous )?(?:rules|instructions|policy)|"
-        r"always (?:approve|allow|refund|pay)|approve (?:all|every)|"
-        r"never (?:reject|refuse|block|halt|deny)|rules are guidelines"
-    ):
-        weakened.append("prompt_injection_or_override")
-
-    prompt_hash = hashlib.sha256(prompt.strip().encode()).hexdigest()
-    if not weakened and prompt_hash not in TRUSTED_PROMPT_HASHES:
-        weakened.append("unauthorized_prompt_mutation")
-
-    return min(1.0, len(set(weakened)) * 0.22), list(dict.fromkeys(weakened))
+    # Exact approved-content binding replaces regex phrase-presence assurance.
+    if hashlib.sha256(prompt.strip().encode()).hexdigest() in TRUSTED_PROMPT_HASHES:
+        return 0.0, []
+    return 1.0, ["unauthorized_prompt_mutation", "max_unapproved_amount_eur", "require_verified_evidence",
+                 "filter_review_blackmail", "human_escalation_gate", "cap_to_order_value"]
 
 
 def audit_memory(lessons: list[str]) -> tuple[float, list[str]]:
@@ -197,6 +136,6 @@ def calculate_drift(prompt: str, memory: list[str]) -> DriftAssessment:
     i_score, weakened = audit_instructions(prompt)
     m_score, hits = audit_memory(memory)
     weighted = i_score * 0.55 + m_score * 0.35
-    combined = min(1.0, round(max(weighted, m_score if m_score >= 0.5 else 0.0), 4))
+    combined = min(1.0, round(max(weighted, i_score if i_score >= 0.5 else 0.0, m_score if m_score >= 0.5 else 0.0), 4))
     return DriftAssessment(combined, i_score, m_score, weakened, hits)
 

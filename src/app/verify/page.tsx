@@ -1,6 +1,5 @@
 import { MerkleTree } from "@/components/merkle";
 import { runSimulation } from "@/lib/engine";
-import { ensureSeeded } from "@/lib/persist";
 import { media } from "@/lib/media";
 import { VerifyConsole } from "@/components/verify-console";
 import Link from "next/link";
@@ -8,7 +7,6 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function VerifyPage() {
-  await ensureSeeded();
   const on = runSimulation("watchdog_on");
   const leaves = on.workpaper.trace.map((t) => t.stepHash);
 

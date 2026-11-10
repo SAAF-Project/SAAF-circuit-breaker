@@ -5,6 +5,10 @@ import { Pool } from "pg";
 import * as schema from "@/db/schema";
 
 const BOOTSTRAP_DDL = `
+CREATE TABLE IF NOT EXISTS order_budgets (
+ id text PRIMARY KEY, order_total double precision NOT NULL CHECK (order_total >= 0),
+ authorized_cents integer NOT NULL DEFAULT 0 CHECK (authorized_cents >= 0)
+);
 CREATE TABLE IF NOT EXISTS policies (
   id text PRIMARY KEY,
   policy_id text NOT NULL UNIQUE,

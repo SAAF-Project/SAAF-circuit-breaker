@@ -1,16 +1,16 @@
 import { maintainStorage, enforceQuota } from "@/lib/storage-limits";
 import { randomUUID } from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { checkpoints, sentinelSessions, ticketEvents, workpapers } from "@/db/schema";
+import { orderBudgets, checkpoints, sentinelSessions, ticketEvents, workpapers } from "@/db/schema";
 import { interceptTicket } from "@/lib/engine";
 import { hashJson, hashPrompt } from "@/lib/hash";
 import { judgeWithJev } from "@/lib/jev";
 import { buildWorkpaper, computeTraceHash, renderWorkpaperHtml, verifyWorkpaper, type TraceEvent } from "@/lib/ledger";
-import { GENESIS_PROMPT, genesisPromptHash } from "@/lib/policy";
+import { GENESIS_PROMPT, MAX_DRIFT_THRESHOLD, genesisPromptHash } from "@/lib/policy";
 import { evaluateActionGuard, type ActionGuardInput } from "@/lib/sentinel";
 
-export type InterceptInput = ActionGuardInput & { sessionId?: string; currentPrompt?: string; currentMemory?: string[] };
+export type InterceptInput = ActionGuardInput & { orderId?: string; sessionId?: string; currentPrompt?: string; currentMemory?: string[] };
 export const validSessionId = (value: unknown): value is string =>
   typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
@@ -18,13 +18,14 @@ export function parseInterceptInput(value: unknown): InterceptInput | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
   const input = { ...body, reviewThreat: body.reviewThreat ?? false, claimType: body.claimType ?? "goodwill" } as InterceptInput;
+  if (typeof body.orderId !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(body.orderId)) return null;
   if (evaluateActionGuard(input).reason === "INVALID_ACTION_INPUT" ||
       (body.sessionId !== undefined && !validSessionId(body.sessionId)) ||
       typeof input.claimType !== "string" || input.claimType.length > 100 ||
       (body.currentPrompt !== undefined && (typeof body.currentPrompt !== "string" || body.currentPrompt.length > 20000)) ||
       (body.currentMemory !== undefined && (!Array.isArray(body.currentMemory) || body.currentMemory.length > 100 ||
         !body.currentMemory.every((lesson) => typeof lesson === "string" && lesson.length <= 2000)))) return null;
-  return { amount: input.amount, orderTotal: input.orderTotal, hasPhotoEvidence: input.hasPhotoEvidence,
+  return { orderId: body.orderId, amount: input.amount, orderTotal: input.orderTotal, hasPhotoEvidence: input.hasPhotoEvidence,
     reviewThreat: input.reviewThreat, claimType: input.claimType,
     ...(body.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
     ...(body.currentPrompt !== undefined ? { currentPrompt: input.currentPrompt } : {}),
@@ -33,6 +34,8 @@ export function parseInterceptInput(value: unknown): InterceptInput | null {
 
 /** A transactional local demo agent. No external refunds or external agents are actuated. */
 export async function processIntercept(input: InterceptInput) {
+  if (!input.orderId || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(input.orderId)) throw new Error("ORDER_ID_REQUIRED");
+  const orderId = input.orderId;
   const sessionId = input.sessionId ?? randomUUID();
   // Snapshot and slow provider I/O happen without a DB transaction or advisory lock.
   const [stored] = await db.select().from(sentinelSessions).where(eq(sentinelSessions.id, sessionId));
@@ -47,7 +50,7 @@ export async function processIntercept(input: InterceptInput) {
   const proposed = { prompt: input.currentPrompt ?? before.prompt, memory: input.currentMemory ?? before.memory };
   const trace = (stored?.trace ?? []) as unknown as TraceEvent[];
   if (trace.length >= 100) throw new Error("SESSION_EVENT_LIMIT");
-  const local = interceptTicket({ ...input, currentPrompt: proposed.prompt, currentMemory: proposed.memory });
+  let local = interceptTicket({ ...input, currentPrompt: proposed.prompt, currentMemory: proposed.memory });
   const jev = await judgeWithJev({ proposedAction: { amount: input.amount, orderTotal: input.orderTotal,
     hasPhotoEvidence: input.hasPhotoEvidence, reviewThreat: input.reviewThreat, claimType: input.claimType },
     instructions: proposed.prompt, memory: proposed.memory, deterministicAssessment: local });
@@ -59,7 +62,17 @@ export async function processIntercept(input: InterceptInput) {
     const [current] = await tx.select().from(sentinelSessions).where(eq(sentinelSessions.id, sessionId));
     // Never apply a judgment made for a stale snapshot. Caller may retry explicitly.
     if (JSON.stringify(current ?? null) !== JSON.stringify(stored ?? null)) throw new Error("SESSION_CONFLICT");
-    const rollbackExecuted = local.drift.driftScore >= 0.5 || local.drift.weakenedRules.length > 0 || jev.choice === "quarantine";
+    // Quota lock above serializes authorization budgets across ALL sessions/processes.
+    const [order] = await tx.select().from(orderBudgets).where(eq(orderBudgets.id, orderId));
+    if (order && order.orderTotal !== input.orderTotal) throw new Error("ORDER_TOTAL_CONFLICT");
+    if (!order) {
+      const [n] = await tx.select({ value: count() }).from(orderBudgets);
+      if (n.value >= 10000) throw new Error("ORDER_BUDGET_LIMIT");
+      await tx.insert(orderBudgets).values({ id: orderId, orderTotal: input.orderTotal, authorizedCents: 0 });
+    }
+    const alreadyAuthorized = (order?.authorizedCents ?? 0) / 100;
+    local = interceptTicket({ ...input, alreadyAuthorized, currentPrompt: proposed.prompt, currentMemory: proposed.memory });
+    const rollbackExecuted = local.drift.driftScore >= MAX_DRIFT_THRESHOLD || local.drift.weakenedRules.length > 0 || jev.choice === "quarantine";
     const uncertain = jev.status !== "succeeded" || jev.confidence === null || jev.confidence < 0.8 ||
       (jev.choice === "allow" && (jev.probabilities?.allow ?? 0) < 0.8);
     const verdict = rollbackExecuted ? "QUARANTINE_AND_ROLLBACK" :
@@ -85,7 +98,8 @@ export async function processIntercept(input: InterceptInput) {
       guardEvaluation: local.guard.evaluation, verdict, rollbackExecuted,
       restoredCheckpointHash: rollbackExecuted ? hashPrompt(checkpoint.prompt) : null,
       parentHash: trace.at(-1)?.stepHash ?? genesisPromptHash(), againstPolicy: false, paidAmount: 0,
-      policyInputs: { orderTotal: input.orderTotal, hasPhotoEvidence: input.hasPhotoEvidence, reviewThreat: input.reviewThreat, claimType: input.claimType },
+      orderId, authorizationReserved: verdict === "ALLOW",
+      policyInputs: { alreadyAuthorized, orderTotal: input.orderTotal, hasPhotoEvidence: input.hasPhotoEvidence, reviewThreat: input.reviewThreat, claimType: input.claimType },
       stateBefore: before, proposedState: proposed, stateAfter: after, jev, reason,
       humanReview: verdict === "ALLOW" ? "not_required" : "queued_local_review", paymentExecuted: false,
     };
@@ -95,6 +109,10 @@ export async function processIntercept(input: InterceptInput) {
     const workpaper = buildWorkpaper({ workpaperId, mode: "watchdog_on", promptHash: genesisPromptHash(), trace: nextTrace });
     const verification = verifyWorkpaper(workpaper);
     if (!verification.ok) throw new Error("INTERNAL_WORKPAPER_INTEGRITY_FAILURE");
+    if (verdict === "ALLOW") {
+      await tx.update(orderBudgets).set({ authorizedCents: (order?.authorizedCents ?? 0) + Math.round(input.amount * 100) })
+        .where(eq(orderBudgets.id, orderId));
+    }
     await tx.insert(sentinelSessions).values({ id: sessionId, activePrompt: after.prompt, activeMemory: after.memory,
       checkpointPrompt: healthy.prompt, checkpointMemory: healthy.memory, trace: nextTrace as unknown as Record<string, unknown>[], updatedAt: new Date() })
       .onConflictDoUpdate({ target: sentinelSessions.id, set: { activePrompt: after.prompt, activeMemory: after.memory,
@@ -116,7 +134,7 @@ export async function processIntercept(input: InterceptInput) {
       verificationResult: verification as unknown as Record<string, unknown>, htmlReport: renderWorkpaperHtml(workpaper, verification) };
     await tx.insert(workpapers).values({ id: `wp-live-${sessionId}`, ...document })
       .onConflictDoUpdate({ target: workpapers.workpaperId, set: document });
-    return { ...local, verdict, action, reason, jev, sessionId, rollbackExecuted, activeState: after,
+    return { ...local, orderId, alreadyAuthorized, authorizationReserved: verdict === "ALLOW", verdict, action, reason, jev, sessionId, rollbackExecuted, activeState: after,
       checkpointHash: hashPrompt(healthy.prompt), persisted: true, paymentExecuted: false,
       humanReview: event.humanReview, workpaper, verification };
   });

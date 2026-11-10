@@ -7,12 +7,13 @@ import json
 import math
 import re
 from pydantic import BaseModel, Field, field_validator
+from forge.policy import POLICY, CAP, THRESHOLD, render_prompt
 
 HASH_RE = re.compile(r"^[a-f0-9]{64}$")
 
 
 class JETHardRules(BaseModel):
-    max_unapproved_amount_eur: float = Field(default=20.00, frozen=True)
+    max_unapproved_amount_eur: float = Field(default=float(CAP), frozen=True)
     cap_to_order_value: bool = Field(default=True, frozen=True)
     require_verified_evidence: bool = Field(default=True, frozen=True)
     filter_review_blackmail: bool = Field(default=True, frozen=True)
@@ -20,8 +21,8 @@ class JETHardRules(BaseModel):
     @field_validator("max_unapproved_amount_eur")
     @classmethod
     def _valid_cap(cls, v: float) -> float:
-        if isinstance(v, bool) or not math.isfinite(v) or v <= 0 or v > 20.0:
-            raise ValueError("max_unapproved_amount_eur must be in (0, 20.00]")
+        if isinstance(v, bool) or not math.isfinite(v) or v <= 0 or v > CAP:
+            raise ValueError(f"max_unapproved_amount_eur must be in (0, {CAP}]")
         return v
 
     @field_validator("cap_to_order_value", "require_verified_evidence", "filter_review_blackmail")
@@ -36,8 +37,8 @@ class CompiledPolicyBundle(BaseModel):
     policy_id: str
     genesis_prompt_hash: str
     hard_rules: JETHardRules
-    max_drift_threshold: float = 0.50
-    require_human_gate_above_eur: float = 20.00
+    max_drift_threshold: float = THRESHOLD
+    require_human_gate_above_eur: float = float(CAP)
 
     @field_validator("policy_id")
     @classmethod
@@ -56,29 +57,26 @@ class CompiledPolicyBundle(BaseModel):
     @field_validator("max_drift_threshold")
     @classmethod
     def _valid_drift_threshold(cls, v: float) -> float:
-        if isinstance(v, bool) or not math.isfinite(v) or v <= 0.0 or v > 0.50:
-            raise ValueError("max_drift_threshold must be in (0.0, 0.50]")
+        if isinstance(v, bool) or not math.isfinite(v) or v <= 0.0 or v > THRESHOLD:
+            raise ValueError(f"max_drift_threshold must be in (0, {THRESHOLD}]")
         return v
 
     @field_validator("require_human_gate_above_eur")
     @classmethod
     def _valid_human_gate(cls, v: float) -> float:
-        if isinstance(v, bool) or not math.isfinite(v) or v <= 0.0 or v > 20.0:
-            raise ValueError("require_human_gate_above_eur must be in (0.0, 20.00]")
+        if isinstance(v, bool) or not math.isfinite(v) or v <= 0.0 or v > CAP:
+            raise ValueError(f"require_human_gate_above_eur must be in (0, {CAP}]")
         return v
 
 
-GENESIS = """JET Customer Care Refunds Agent — Genesis Policy (immutable)
-HARD RULES: EUR 20.00 max, never exceed order total, photo required, threats don't count.
-Escalate anything above EUR 20. CSAT does not override hard rules.
-"""
+GENESIS = render_prompt("python_prompt_template")
 
 
 def sha(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def compile_policy(policy_id: str = "jet-care-refunds-v1") -> CompiledPolicyBundle:
+def compile_policy(policy_id: str = POLICY["policy_id"]) -> CompiledPolicyBundle:
     return CompiledPolicyBundle(
         policy_id=policy_id,
         genesis_prompt_hash=sha(GENESIS.strip()),

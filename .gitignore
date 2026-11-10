@@ -11,3 +11,7 @@ __pycache__/
 .venv-cli/
 *.tsbuildinfo
 workpapers/
+
+.saaf/
+*.sqlite
+*.sqlite-journal

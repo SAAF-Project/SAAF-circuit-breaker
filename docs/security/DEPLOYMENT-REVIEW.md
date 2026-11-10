@@ -1,5 +1,7 @@
 # Deployment configuration review — 2026-11-10
 
+> Historical snapshot: see [current historical remediation status](HISTORICAL-CLOSURE.md) for subsequent changes and current limits.
+
 ## Verdict: partial configuration verification, not production clearance
 
 This is a read-only control-plane/source review by the same coordinating agent. No fresh independent reviewer was available. No production settings were changed, no secrets were decrypted, no provider calls or destructive endpoint tests were made, and no tunnel endpoint was probed. The current environment only permits outbound sandbox traffic to a limited host allowlist; the documented tunnel is outside it.

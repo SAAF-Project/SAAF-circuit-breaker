@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { seedAll } from "@/lib/persist";
+import { ensureSeeded } from "@/lib/persist";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  const result = await seedAll();
-  return NextResponse.json(result);
+  if (process.env.SAAF_ENABLE_SEED !== "true") return NextResponse.json({ error: "Explicit seeding is disabled" }, { status: 403 });
+  await ensureSeeded();
+  return NextResponse.json({ ok: true });
 }
 
 export async function GET() {

@@ -85,13 +85,18 @@ def process_ticket(
         )
     except Exception as exc:
         raise typer.BadParameter("Invalid policy JSON") from exc
-    runtime = SAAFSentinelRuntime(loaded_policy)
+    from sentinel.budgets import OrderBudgets
+    import os
+    budget_path = Path(os.environ.get("SAAF_BUDGET_DB", ".saaf/order-budgets.sqlite"))
+    budget_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    runtime = SAAFSentinelRuntime(loaded_policy, budgets=OrderBudgets(budget_path))
     current_prompt = data.get("current_prompt", runtime.last_healthy_checkpoint.prompt_content)
     current_memory = data.get("current_memory", [])
     result = runtime.intercept_and_evaluate(
         "execute_refund",
         {"amount": data.get("requested_amount", data.get("amount", 0)), "ticket_id": raw_ticket_id},
         {
+            "order_id": data.get("order_id", str(raw_ticket_id)),
             "order_total": data.get("order_total", 0),
             "has_photo_evidence": data.get("has_photo_evidence", False),
             "review_threat": data.get("review_threat", False),
@@ -127,7 +132,10 @@ def process_ticket(
         "against_policy": False,
         "paid_amount": 0.0,
         "payment_executed": False,
-        "policy_inputs": {"order_total": data.get("order_total"),
+        "order_id": result.get("order_id"),
+        "authorization_reserved": result.get("authorization_reserved", False),
+        "policy_inputs": {"already_authorized": result.get("already_authorized", 0),
+                          "order_total": data.get("order_total"),
                           "has_photo_evidence": data.get("has_photo_evidence", False),
                           "review_threat": data.get("review_threat", False)},
     }

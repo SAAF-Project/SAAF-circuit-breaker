@@ -26,6 +26,7 @@ type Intercept = {
 };
 
 export function SentinelConsole() {
+  const [orderId, setOrderId] = useState("demo-order-001");
   const [amount, setAmount] = useState(21.35);
   const [orderTotal, setOrderTotal] = useState(21.59);
   const [hasPhoto, setHasPhoto] = useState(false);
@@ -48,7 +49,7 @@ export function SentinelConsole() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           ...(sessionId ? { sessionId } : {}),
-          amount,
+          orderId, amount,
           orderTotal,
           hasPhotoEvidence: hasPhoto,
           reviewThreat: threat,
@@ -79,6 +80,9 @@ export function SentinelConsole() {
       <div className="noise-panel min-w-0 rounded-3xl p-5">
         <p className="kicker">Live interceptor</p>
         <h2 className="font-display mb-4 text-xl font-semibold">Refund inputs</h2>
+        <label className="mb-3 block text-xs text-[#9aa3b2]">Stable order reference (shared across sessions)
+          <input value={orderId} onChange={(e) => setOrderId(e.target.value)} maxLength={128} className="mt-1 w-full rounded-xl bg-black/40 px-3 py-2 text-white ring-1 ring-white/10" />
+        </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="text-xs text-[#9aa3b2]">
             Amount EUR
