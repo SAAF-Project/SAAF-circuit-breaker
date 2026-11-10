@@ -15,6 +15,7 @@ type Verification = {
 export function VerifyConsole({ defaultWorkpaper }: { defaultWorkpaper: string }) {
   const [raw, setRaw] = useState(defaultWorkpaper);
   const [result, setResult] = useState<Verification | null>(null);
+  const [authenticity, setAuthenticity] = useState<{ authentic: boolean; reason: string; reviewer?: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,19 +23,21 @@ export function VerifyConsole({ defaultWorkpaper }: { defaultWorkpaper: string }
     setBusy(true);
     setError(null);
     setResult(null);
+    setAuthenticity(null);
     try {
       const parsed = JSON.parse(raw) as unknown;
       const res = await fetch("/api/verify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ workpaper: parsed }),
+        body: JSON.stringify(parsed && typeof parsed === "object" && "workpaper" in parsed ? parsed : { workpaper: parsed }),
       });
-      const data = (await res.json()) as { verification: Verification; error?: string };
+      const data = (await res.json()) as { verification: Verification; authenticity?: { authentic: boolean; reason: string; reviewer?: string }; error?: string };
       if (!res.ok) {
         setError(data.error ?? "Verification request failed");
         return;
       }
       setResult(data.verification);
+      setAuthenticity(data.authenticity ?? { authentic: false, reason: "No authenticity evidence supplied" });
     } catch (failure) {
       setError(failure instanceof SyntaxError ? "Workpaper JSON could not be parsed." : failure instanceof Error ? failure.message : "Verification request failed.");
     } finally {
@@ -68,6 +71,9 @@ export function VerifyConsole({ defaultWorkpaper }: { defaultWorkpaper: string }
       {result ? (
         <div className="mt-4 grid gap-2 md:grid-cols-4">
           <p role="status" className={`break-words text-sm md:col-span-4 ${result.ok ? "text-emerald-300" : "text-rose-300"}`}>{result.message}</p>
+          <p className="break-words text-sm md:col-span-4">{authenticity?.authentic
+            ? `Trusted signature: ${authenticity.reviewer}`
+            : "Unsigned or untrusted: consistency is not proof of authenticity."}</p>
           <Flag ok={result.genesisMatch} label="Genesis" />
           <Flag ok={result.hashChainMatch} label="Step hashes" />
           <Flag ok={result.merkleMatch} label="Merkle" />

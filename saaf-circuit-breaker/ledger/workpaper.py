@@ -9,11 +9,12 @@ from pathlib import Path
 from typing import Any
 
 from forge.compiler import GENESIS
+from forge.policy import CAP, THRESHOLD
 from ledger.merkle import hash_json, merkle_root, sha256, step_hash
 from sentinel.auditors import TS_GENESIS, calculate_drift
 from sentinel.guards import action_guard
 
-TRUSTED_HARD_RULES = {"max_amount": 20.0, "require_evidence": True}
+TRUSTED_HARD_RULES = {"max_amount": float(CAP), "require_evidence": True}
 HASH_RE = re.compile(r"^[a-f0-9]{64}$")
 TS_GENESIS_HASH = sha256(TS_GENESIS.strip())
 PY_GENESIS_HASH = sha256(GENESIS.strip())
@@ -145,6 +146,7 @@ def _normalize_event(raw: Any, is_camel: bool) -> dict | None:
     }
     if isinstance(policy_inputs, dict):
         candidate["policy_inputs"] = {
+            "already_authorized": policy_inputs.get("alreadyAuthorized", 0),
             "order_total": policy_inputs.get("orderTotal"),
             "has_photo_evidence": policy_inputs.get("hasPhotoEvidence"),
             "review_threat": policy_inputs.get("reviewThreat"),
@@ -255,7 +257,7 @@ def verify_workpaper(wp: Any) -> dict:
             if not isinstance(inputs, dict):
                 return _invalid("Verification failed: malformed policy inputs.", expected_merkle_root)
             replay = action_guard(amount, inputs.get("order_total"), inputs.get("has_photo_evidence"),
-                                  inputs.get("review_threat"), max_allowed)
+                                  inputs.get("review_threat"), max_allowed, inputs.get("already_authorized", 0))
             if (replay.reason == "INVALID_GUARD_INPUT" or replay.evaluation != event["guard_evaluation"]
                     or (metadata["mode"] == "watchdog_on" and not replay.ok and event["paid_amount"] != 0)):
                 guard_ok = False
@@ -272,7 +274,7 @@ def verify_workpaper(wp: Any) -> dict:
                 drift_replay = calculate_drift(raw_proposed["prompt"], raw_proposed["memory"])
                 if (
                     metadata["mode"] == "watchdog_on"
-                    and (drift_replay.drift_score >= 0.5 or drift_replay.weakened_rules)
+                    and (drift_replay.drift_score >= THRESHOLD or drift_replay.weakened_rules)
                     and (not event["rollback_executed"] or event["verdict"] != "QUARANTINE_AND_ROLLBACK")
                 ):
                     guard_ok = False

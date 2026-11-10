@@ -1,7 +1,7 @@
 import { verifyStoredWorkpaper } from "@/lib/stored-workpaper";
 import { maintainStorage, enforceQuota } from "@/lib/storage-limits";
 import { randomUUID } from "node:crypto";
-import { desc, eq, ne, notLike, sql } from "drizzle-orm";
+import { desc, eq, notLike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   checkpoints,
@@ -25,15 +25,10 @@ import {
   scanSource,
 } from "@/lib/forge";
 
-export async function ensureSeeded(): Promise<void> {
-  // Legacy partial-hash seals cannot be carried forward as verified evidence.
-  await db.update(workpapers).set({ verified: false }).where(ne(workpapers.auditSeal, "CONSISTENCY_CHECKED"));
-  const existing = await db.select({ id: personas.id }).from(personas).limit(1);
-  if (existing.length > 0) return;
-  await seedAll();
-}
+/** Called only by explicit authenticated POST /api/seed. */
+export async function ensureSeeded(): Promise<void> { await seedAll(true); }
 
-export async function seedAll(): Promise<{ ok: true; runs: string[] }> {
+export async function seedAll(onlyIfEmpty = false): Promise<{ ok: true; runs: string[] }> {
   const policy = compiledPolicy();
   const findings = scanSource(SAMPLE_ROGUE_AGENT);
   const onSim = runSimulation("watchdog_on");
@@ -42,6 +37,9 @@ export async function seedAll(): Promise<{ ok: true; runs: string[] }> {
   return db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('saaf_seed_lock'))`);
 
+    if (onlyIfEmpty && (await tx.select({ id: personas.id }).from(personas).limit(1)).length) {
+      return { ok: true, runs: [] };
+    }
     await tx.delete(ticketEvents).where(notLike(ticketEvents.id, "live-%"));
     await tx.delete(checkpoints).where(notLike(checkpoints.id, "live-%"));
     await tx.delete(workpapers).where(notLike(workpapers.workpaperId, "WP-LIVE-%"));
@@ -224,7 +222,6 @@ export async function latestRuns(): Promise<{
 }
 
 export async function getDashboard() {
-  await ensureSeeded();
   const [on, off] = [runSimulation("watchdog_on"), runSimulation("watchdog_off")];
   const [scan] = await db.select().from(forgeScans).where(eq(forgeScans.id, "scan-rogue-agent")).limit(1);
   const wpRows = await db.select().from(workpapers).orderBy(desc(workpapers.createdAt), desc(workpapers.id)).limit(50);
@@ -233,7 +230,7 @@ export async function getDashboard() {
   const runRows = await db.select().from(rehearsalRuns);
 
   return {
-    seeded: true,
+    seeded: personaRows.length > 0,
     policy: compiledPolicy(),
     scan,
     personas: personaRows,
@@ -255,7 +252,6 @@ export async function getDashboard() {
 }
 
 export async function getWorkpaperByKey(workpaperId: string) {
-  await ensureSeeded();
   const rows = await db.select().from(workpapers).where(eq(workpapers.workpaperId, workpaperId));
   return rows[0] ?? null;
 }

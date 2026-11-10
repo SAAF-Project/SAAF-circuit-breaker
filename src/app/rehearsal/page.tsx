@@ -1,13 +1,11 @@
 import { Theater } from "@/components/theater";
 import { PersonaSwarm } from "@/components/swarm";
 import { runSimulation } from "@/lib/engine";
-import { ensureSeeded } from "@/lib/persist";
 import { SCENARIO_TICKETS, phaseLabel } from "@/lib/tickets";
 
 export const dynamic = "force-dynamic";
 
 export default async function RehearsalPage() {
-  await ensureSeeded();
   const on = runSimulation("watchdog_on");
   const off = runSimulation("watchdog_off");
 

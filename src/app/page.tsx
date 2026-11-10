@@ -3,7 +3,6 @@ import { Pipeline } from "@/components/pipeline";
 import { PersonaSwarm } from "@/components/swarm";
 import { Theater } from "@/components/theater";
 import { runSimulation } from "@/lib/engine";
-import { ensureSeeded } from "@/lib/persist";
 import { media } from "@/lib/media";
 import { PERSONAS } from "@/lib/personas";
 import { compiledPolicy } from "@/lib/policy";
@@ -12,7 +11,6 @@ import { RED_FLAG_CATALOG } from "@/lib/forge";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  await ensureSeeded();
   const on = runSimulation("watchdog_on");
   const off = runSimulation("watchdog_off");
   const policy = compiledPolicy();
@@ -56,6 +54,10 @@ export default async function HomePage() {
         <Theater onRun={on} offRun={off} compact />
       </section>
 
+      <section className="mx-auto max-w-[1440px] px-5 py-4 text-sm text-[#c8c3b8]">
+        <h2 className="font-semibold">Control limitations</h2>
+        <p>Containment demonstration, not semantic policy entailment or compliance certification. Exact approved prompt hashes reject unapproved rewrites (including benign paraphrases); memory and static scanning remain heuristic. No external refunds are executed. Unsigned workpapers establish consistency, not authenticity. Shared order budgets require stable, authenticated order references in any real integration.</p>
+      </section>
       <Pipeline />
 
       <section className="mx-auto max-w-[1440px] px-5 pb-10">

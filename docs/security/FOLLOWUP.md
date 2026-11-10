@@ -1,5 +1,7 @@
 # Security follow-up — 2026-11-10
 
+> Historical snapshot: see [current historical remediation status](HISTORICAL-CLOSURE.md) for subsequent changes and current limits.
+
 ## Deployment contract (important behavior changes)
 
 This build is a **single trusted-operator demonstration**. All sessions and workpapers belong to that operator; UUIDs are identifiers, not authorization credentials. It is NOT suitable for mutually untrusted users sharing an operator account or for production payment/PII workloads.

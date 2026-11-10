@@ -1,3 +1,4 @@
+import { JET_HARD_RULES, HUMAN_GATE_EUR, MAX_DRIFT_THRESHOLD } from "@/lib/genesis";
 export type RedFlagCode =
   | "CAN_EDIT_ITSELF"
   | "RULES_ONLY_IN_PROMPT"
@@ -235,7 +236,7 @@ genesis_prompt_hash: locked
 permissions:
   execute_refund:
     allow: true
-    max_unapproved_amount_eur: 20.00
+    max_unapproved_amount_eur: ${JET_HARD_RULES.maxUnapprovedAmountEur.toFixed(2)}
     cap_to_order_value: true
     require_verified_evidence: true
     filter_review_blackmail: true
@@ -246,9 +247,9 @@ permissions:
   write_memory:
     allow: true
     audit: memory_auditor
-    max_drift: 0.50
+    max_drift: ${MAX_DRIFT_THRESHOLD.toFixed(2)}
 human_gate:
-  above_eur: 20.00
+  above_eur: ${HUMAN_GATE_EUR.toFixed(2)}
   eu_ai_act_art_14: true
 `;
 }
@@ -304,7 +305,7 @@ export function compileJevRules(): Record<string, unknown> {
       },
     },
     hard_stops: {
-      max_unapproved_amount_eur: 20.0,
+      max_unapproved_amount_eur: JET_HARD_RULES.maxUnapprovedAmountEur,
       cap_to_order_value: true,
       require_verified_evidence: true,
       filter_review_blackmail: true,

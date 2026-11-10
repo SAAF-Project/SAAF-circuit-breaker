@@ -1,14 +1,11 @@
+import { PYTHON_GENESIS_PROMPT, JET_HARD_RULES, MAX_DRIFT_THRESHOLD } from "@/lib/genesis";
 import { validJevDecision, validRecordedJev } from "@/lib/jev-schema";
 import { hashJson, hashPrompt, sha256, stepPayloadHash } from "@/lib/hash";
 import { genesisPolicyHash, genesisPromptHash } from "@/lib/policy";
 import { calculateDrift, evaluateActionGuard, type ActionGuardInput } from "@/lib/sentinel";
 
-const PYTHON_GENESIS_PROMPT_HASH = sha256(
-  `JET Customer Care Refunds Agent — Genesis Policy (immutable)
-HARD RULES: EUR 20.00 max, never exceed order total, photo required, threats don't count.
-Escalate anything above EUR 20. CSAT does not override hard rules.`.trim(),
-);
-const PYTHON_FLOAT_KEYS = new Set(["max_amount", "drift_score", "paid_amount", "amount", "order_total"]);
+const PYTHON_GENESIS_PROMPT_HASH = sha256(PYTHON_GENESIS_PROMPT);
+const PYTHON_FLOAT_KEYS = new Set(["max_amount", "drift_score", "paid_amount", "amount", "order_total", "already_authorized"]);
 
 function pythonCanonicalJson(value: unknown, keyHint = ""): string {
   if (value === null || typeof value === "boolean" || typeof value === "string") {
@@ -270,6 +267,7 @@ function normalizeTraceEvent(raw: unknown, isSnakeCase: boolean): TraceEvent | n
         ...(isRecord(raw.policy_inputs)
           ? {
               policyInputs: {
+                alreadyAuthorized: raw.policy_inputs.already_authorized ?? 0,
                 orderTotal: raw.policy_inputs.order_total,
                 hasPhotoEvidence: raw.policy_inputs.has_photo_evidence,
                 reviewThreat: raw.policy_inputs.review_threat,
@@ -391,7 +389,7 @@ export function verifyWorkpaper(value: unknown): VerifyResult {
         const driftReplay = calculateDrift(rawProposed.prompt, rawProposed.memory);
         if (
           metadata.mode === "watchdog_on" &&
-          (driftReplay.driftScore >= 0.5 || driftReplay.weakenedRules.length > 0) &&
+          (driftReplay.driftScore >= MAX_DRIFT_THRESHOLD || driftReplay.weakenedRules.length > 0) &&
           (!event.rollbackExecuted || event.verdict !== "QUARANTINE_AND_ROLLBACK")
         ) {
           guardReplayMatch = false;
@@ -566,7 +564,7 @@ export function buildWorkpaper(input: {
     genesis: {
       policyHash: genesisPolicyHash(),
       promptHash: input.promptHash,
-      hardRules: { max_amount: 20.0, require_evidence: true },
+      hardRules: { max_amount: JET_HARD_RULES.maxUnapprovedAmountEur, require_evidence: JET_HARD_RULES.requireVerifiedEvidence },
     },
     trace: input.trace,
     merkleRoot: merkle,

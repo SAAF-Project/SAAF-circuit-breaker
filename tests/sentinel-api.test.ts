@@ -12,7 +12,7 @@ import { GENESIS_PROMPT } from "../src/lib/genesis";
 
 const valid = { amount: 10, orderTotal: 20, hasPhotoEvidence: true, reviewThreat: false, currentPrompt: GENESIS_PROMPT, currentMemory: [] };
 function request(body: unknown) {
-  return new Request("http://localhost/api/sentinel/intercept", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  return new Request("http://localhost/api/sentinel/intercept", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: randomUUID(), ...(body as object) }) });
 }
 
 test("intercept API rejects malformed safety inputs instead of coercing them", async () => {

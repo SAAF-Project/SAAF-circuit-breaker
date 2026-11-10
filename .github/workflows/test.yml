@@ -1,0 +1,52 @@
+name: Security and tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: saaf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci --include=dev
+      - run: npm audit --audit-level=high
+      - run: node scripts/check-assurance-claims.mjs
+        env:
+          SAAF_REVIEW_PUBLIC_KEYS_JSON: ${{ vars.SAAF_REVIEW_PUBLIC_KEYS_JSON }}
+      - run: python -m pip install -e 'saaf-circuit-breaker[dev]'
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: Tests without external database
+        run: env -u DATABASE_URL npm test
+      - name: PostgreSQL integration (one disposable database per file)
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://postgres:ci-only-password@127.0.0.1:5432/saaf
+      - run: python -m pytest saaf-circuit-breaker/tests -q
+        env:
+          SAAF_BUDGET_DB: /tmp/saaf-ci-order-budgets.sqlite
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: git diff --exit-code

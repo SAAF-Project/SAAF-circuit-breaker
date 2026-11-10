@@ -1,6 +1,6 @@
 # SAAF Circuit Breaker
 
-> **Security / deployment:** This is a single trusted-operator demo, not a multi-tenant payment service. Production now requires `SAAF_OPERATOR_PASSWORD` (>=24 characters) over HTTPS and fails closed without it. Demo records expire after 30 days during maintenance. See [security follow-up and validation](docs/security/FOLLOWUP.md) before deploying.
+> **Security / deployment:** This is a single trusted-operator demo, not a multi-tenant payment service. Production now requires `SAAF_OPERATOR_PASSWORD` (>=24 characters) over HTTPS and fails closed without it. Demo evidence expires after 30 days during maintenance; authorization budgets are retained to prevent reset bypasses. See [security follow-up and validation](docs/security/FOLLOWUP.md) before deploying.
 
 **A refunds agent that talks itself out of its own policy — and the circuit breaker that catches it.**
 
@@ -9,6 +9,12 @@ Built for [Agents Gone Rogue](https://luma.com/tag-saaf) · SAAF Project × Just
 Primary reference: [Job Angula’s Drift Watch](https://github.com/jangula/drift-watch).
 
 Hard rules live **outside the model**. Forge produces policy artifacts, a local deterministic scenario rehearses 36 tickets, and the live Sentinel calls the real TypeSafe Jev API while retaining deterministic vetoes. Workpapers are checked offline with **zero model calls**. The rehearsal is MiroFish-inspired, not an upstream MiroFish integration; hashes check consistency, not signatures or certified compliance.
+
+## Control limitations
+
+This is a containment demonstration, not semantic policy entailment or a certified financial control. Instruction auditing uses exact approved prompt hashes and **rejects every unapproved rewrite**, including benign paraphrases; it does not infer whether arbitrary prose entails a rule. Memory and Forge scanning remain heuristic. The deterministic guard vetoes model judgments and reserves a cumulative per-order authorization budget across sessions; a stable, authenticated order reference is required for real integration. No external refunds occur. Unsigned workpapers prove internal consistency only; reviewer signatures require an independently administered public-key registry, and KMS/WORM provisioning is not supplied by this repository.
+
+Runtime authority is `saaf-circuit-breaker/forge/policy.json`, shared by TypeScript and the packaged Python compiler. Human-readable permissions YAML is generated output, not editable runtime input; the obsolete root file has been removed. `SAAF_ENABLE_SEED=true` enables an explicit authenticated, idempotent POST initialization; GET pages/APIs do not initialize or reset fixtures.
 
 ## Setup
 
@@ -19,7 +25,7 @@ Run `npm test`, `npm run typecheck`, `npm run lint`, then `npm run build` and `n
 The Python installation and exact executable CLI commands are documented in `saaf-circuit-breaker/README.md`.
 
 The live interceptor owns a persisted local demo session and healthy checkpoint. It commits state, trace, local review-queue evidence and workpaper in one transaction; rollback restores the stored prompt **and** memory. A Jev outage, malformed response or uncertain judgment cannot authorize an action. A Jev allow cannot override the refund/evidence guard. No external refunds or external agents are actuated; queued review is local evidence, not notification to a real reviewer.
-The server is a local hackathon prototype without production authentication; bind it to loopback. Do not expose it publicly as a financial service.
+Production uses a fail-closed single-operator authentication gate; it is not multi-tenant authorization or a production financial service. Never expose unconfigured development mode publicly.
 Legacy partial-hash workpapers intentionally fail the new verifier; do not silently trust or relabel them.
 
 ## The rogue behaviour

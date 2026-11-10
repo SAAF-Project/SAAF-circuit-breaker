@@ -78,7 +78,7 @@ test("multi-turn live sentinel information flow upholds state transitions and bl
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            sessionId,
+            orderId: randomUUID(), sessionId,
             amount: 12.5,
             orderTotal: 25.0,
             hasPhotoEvidence: true,
@@ -137,7 +137,7 @@ test("multi-turn live sentinel information flow upholds state transitions and bl
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            sessionId,
+            orderId: randomUUID(), sessionId,
             amount: 8.0,
             orderTotal: 15.0,
             hasPhotoEvidence: true,

@@ -168,3 +168,10 @@ export const forgeScans = pgTable("forge_scans", {
   jevRulesJson: jsonb("jev_rules_json").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Durable authorization budget, independent of sessions and trace retention. */
+export const orderBudgets = pgTable("order_budgets", {
+  id: text("id").primaryKey(),
+  orderTotal: doublePrecision("order_total").notNull(),
+  authorizedCents: integer("authorized_cents").notNull().default(0),
+});

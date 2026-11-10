@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { ticketEvents, workpapers } from "@/db/schema";
-import { ensureSeeded } from "@/lib/persist";
 import { desc } from "drizzle-orm";
 import { runSimulation } from "@/lib/engine";
 
 export const dynamic = "force-dynamic";
 
 export default async function LedgerPage() {
-  await ensureSeeded();
   const papers = await db.select().from(workpapers).orderBy(desc(workpapers.createdAt));
   const events = await db.select().from(ticketEvents).orderBy(desc(ticketEvents.createdAt)).limit(36);
   const on = runSimulation("watchdog_on");

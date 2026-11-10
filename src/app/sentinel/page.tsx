@@ -1,12 +1,10 @@
 import { SentinelConsole } from "@/components/sentinel-console";
 import { runSimulation } from "@/lib/engine";
 import { media } from "@/lib/media";
-import { ensureSeeded } from "@/lib/persist";
 
 export const dynamic = "force-dynamic";
 
 export default async function SentinelPage() {
-  await ensureSeeded();
   const on = runSimulation("watchdog_on");
   const t36 = on.plays.find((p) => p.ticket.ticketNumber === 36);
 

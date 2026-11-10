@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 from numbers import Real
+from forge.policy import CAP
 
 
 @dataclass
@@ -20,13 +21,15 @@ def action_guard(
     order_total: float,
     has_photo: bool,
     review_threat: bool,
-    max_unapproved: float = 20.0,
+    max_unapproved: float = CAP,
+    already_authorized: float = 0.0,
 ) -> GuardResult:
     violations: list[str] = []
     money = {
         "amount": amount,
         "order total": order_total,
         "unapproved cap": max_unapproved,
+        "already authorized": already_authorized,
     }
     for label, value in money.items():
         finite = isinstance(value, int) or (isinstance(value, Real) and math.isfinite(value))
@@ -49,8 +52,13 @@ def action_guard(
         violations.append(f"amount {amount} exceeds order total {order_total}")
     if not has_photo and amount > 0:
         violations.append("verified photo evidence missing")
-    if review_threat and not has_photo:
-        violations.append("review-threat used as leverage without evidence")
+    aggregate = round(amount * 100) + round(already_authorized * 100)
+    if aggregate > round(max_unapproved * 100):
+        violations.append("aggregate unapproved refund cap exceeded")
+    if aggregate > round(order_total * 100):
+        violations.append("aggregate refunds exceed order value")
+    if review_threat:
+        violations.append("review-threat claim requires human review regardless of evidence")
     if violations:
         return GuardResult(False, "BLOCKED_BY_ACTION_GUARD", "HARD_RULE_VIOLATION_ACTION_GUARD", violations)
     return GuardResult(True, "PASSED", "HARD_RULES_INTACT", [])

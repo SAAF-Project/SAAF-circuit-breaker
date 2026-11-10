@@ -69,10 +69,10 @@ test("slow provider does not hold DB lock; unrelated session completes while fir
   let calls = 0;
   globalThis.fetch = async () => { if (++calls === 1) { started(); await gate; } return answer(); };
   try {
-    const first = processIntercept({ ...input, sessionId: randomUUID() });
+    const first = processIntercept({ ...input, orderId: randomUUID(), sessionId: randomUUID() });
     await waiting;
     const second = await Promise.race([
-      processIntercept({ ...input, sessionId: randomUUID() }),
+      processIntercept({ ...input, orderId: randomUUID(), sessionId: randomUUID() }),
       new Promise<never>((_, reject) => { const t = setTimeout(() => reject(new Error("unrelated DB work blocked")), 3000); t.unref(); }),
     ]);
     assert.equal(second.persisted, true);
