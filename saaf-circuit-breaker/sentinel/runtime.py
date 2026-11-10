@@ -29,11 +29,45 @@ class SAAFSentinelRuntime:
         current_prompt: str,
         current_memory: list[str],
     ) -> dict[str, Any]:
-        if (not isinstance(tool_args, dict) or not isinstance(order_context, dict)
-                or not isinstance(current_prompt, str) or not isinstance(current_memory, list)
-                or not all(isinstance(lesson, str) for lesson in current_memory)):
-            return {"verdict": "ROUTE_TO_HUMAN", "reason": "INVALID_RUNTIME_INPUT",
-                    "action": "HALT", "guard_evaluation": "BLOCKED_BY_ACTION_GUARD"}
+        if (
+            not isinstance(tool_name, str)
+            or not tool_name.strip()
+            or not isinstance(tool_args, dict)
+            or not isinstance(order_context, dict)
+            or not isinstance(current_prompt, str)
+            or len(current_prompt) > 20000
+            or not isinstance(current_memory, list)
+            or len(current_memory) > 100
+            or not all(isinstance(lesson, str) and len(lesson) <= 2000 for lesson in current_memory)
+        ):
+            return {
+                "verdict": "ROUTE_TO_HUMAN",
+                "reason": "INVALID_RUNTIME_INPUT",
+                "drift_score": 1.0,
+                "action": "HALT",
+                "guard_evaluation": "BLOCKED_BY_ACTION_GUARD",
+            }
+        if tool_name == "rewrite_instructions":
+            restored_prompt, restored_mem = restore(self.last_healthy_checkpoint)
+            return {
+                "verdict": "QUARANTINE_AND_ROLLBACK",
+                "reason": "FORBIDDEN_TOOL_REWRITE_INSTRUCTIONS",
+                "drift_score": 1.0,
+                "weakened_rules": ["unauthorized_prompt_mutation"],
+                "restored_checkpoint_id": self.last_healthy_checkpoint.checkpoint_id,
+                "action": "ROLLBACK",
+                "guard_evaluation": "BLOCKED_BY_ACTION_GUARD",
+                "restored_prompt": restored_prompt,
+                "restored_memory": restored_mem,
+            }
+        if tool_name != "execute_refund":
+            return {
+                "verdict": "ROUTE_TO_HUMAN",
+                "reason": "UNAUTHORIZED_TOOL_CALL",
+                "drift_score": 1.0,
+                "action": "HALT",
+                "guard_evaluation": "BLOCKED_BY_ACTION_GUARD",
+            }
         # Validate raw values: coercion turns strings and booleans into false authority.
         amount = tool_args.get("amount")
         order_total = order_context.get("order_total")
@@ -72,11 +106,16 @@ class SAAFSentinelRuntime:
                 "restored_memory": restored_mem,
             }
 
-        if drift.drift_score == 0.0:
+        if (
+            drift.drift_score == 0.0
+            and not drift.weakened_rules
+            and sha(current_prompt.strip()) == self.policy.genesis_prompt_hash
+            and len(current_memory) == 0
+        ):
             self.last_healthy_checkpoint = CheckpointState(
                 checkpoint_id=f"chk_{tool_args.get('ticket_id', 'ok')}",
                 prompt_content=current_prompt,
-                prompt_hash=sha(current_prompt),
+                prompt_hash=sha(current_prompt.strip()),
                 memory_snapshot=list(current_memory),
             )
 

@@ -12,8 +12,26 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+MAX_JSON_DEPTH = 32
+FORBIDDEN_KEYS = {"__proto__", "constructor", "prototype"}
+
+
+def _validate_structure(value: Any, depth: int = 0) -> None:
+    if depth > MAX_JSON_DEPTH:
+        raise ValueError("Canonical JSON exceeded maximum nesting depth")
+    if isinstance(value, Mapping):
+        for k, v in value.items():
+            if not isinstance(k, str) or k in FORBIDDEN_KEYS:
+                raise ValueError(f"Canonical JSON does not permit key: {k!r}")
+            _validate_structure(v, depth + 1)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            _validate_structure(item, depth + 1)
+
+
 def canonical_json(value: Any) -> str:
     """Serialize JSON deterministically and reject non-JSON numeric values."""
+    _validate_structure(value)
     return json.dumps(
         value,
         sort_keys=True,

@@ -131,7 +131,7 @@ type Pattern = {
 const PATTERNS: Pattern[] = [
   {
     flag: "CAN_EDIT_ITSELF",
-    re: /working_prompt\s*=|rewrite_instructions|memory_notes\.append|tools\s*=\s*\{/i,
+    re: /(?:working_prompt|system_prompt|active_prompt)\s*(?:\+|=)|rewrite_instructions|update_prompt|self_edit|(?:memory_notes|memory|lessons)\.(?:append|extend|insert)|tools\s*=\s*\{|\bglobal\s+(?:working_prompt|system_prompt|active_prompt)\b/i,
   },
   {
     flag: "RULES_ONLY_IN_PROMPT",
@@ -143,17 +143,23 @@ const PATTERNS: Pattern[] = [
   },
   {
     flag: "SOFTENING_LANGUAGE",
-    re: /generously|plausible|guidelines|never deny|trust the customer/i,
+    re: /generously|plausible|guidelines|never deny|trust the customer|no evidence needed|without evidence/i,
   },
   {
     flag: "ESCALATIONS_FALLING",
-    re: /Never escalate|autonomous closures|don't bother|never deny a customer/i,
+    re: /Never escalate|don't escalate|do not escalate|autonomous closures|don't bother|avoid bothering a human|never deny a customer/i,
   },
   {
     flag: "NO_REPLAYABLE_LOG",
     re: /execute_refund\(|tools\["execute_refund"\]/,
   },
 ];
+
+function normalizeSourceForScan(source: string): string {
+  return source
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFE00-\uFE0F\uFEFF\u00AD]/g, "");
+}
 
 function lineOf(source: string, index: number): number {
   return source.slice(0, index).split("\n").length;
@@ -166,11 +172,18 @@ function snippetAt(source: string, index: number): string {
 }
 
 export function scanSource(source: string, language = "python"): RedFlagFinding[] {
+  const normalized = normalizeSourceForScan(source);
   const findings: RedFlagFinding[] = [];
   const seen = new Set<string>();
 
+  const hasAssertion =
+    /MAX_UNAPPROVED_EUR|assert .*(20|amount)|amount\s*>\s*20|ActionGuard|action_guard|evaluateActionGuard/.test(normalized);
+  const hasHashLink = /parent_hash|prompt_hash|sha256\(prompt\)/.test(normalized);
+
   for (const pattern of PATTERNS) {
-    const match = pattern.re.exec(source);
+    if (pattern.flag === "RULES_ONLY_IN_PROMPT" && hasAssertion) continue;
+    if (pattern.flag === "NO_REPLAYABLE_LOG" && hasHashLink) continue;
+    const match = pattern.re.exec(normalized);
     if (!match || match.index === undefined) continue;
     const key = `${pattern.flag}:${match[0]}`;
     if (seen.has(key)) continue;
@@ -181,14 +194,12 @@ export function scanSource(source: string, language = "python"): RedFlagFinding[
       severity: meta.severity,
       title: meta.title,
       detail: meta.why,
-      line: lineOf(source, match.index),
-      snippet: snippetAt(source, match.index),
+      line: lineOf(normalized, match.index),
+      snippet: snippetAt(normalized, match.index),
     });
   }
 
-  const hasAssertion =
-    /MAX_UNAPPROVED_EUR|assert .*(20|amount)|amount\s*>\s*20|ActionGuard/.test(source);
-  const hasEuroInString = /EUR 20|€20|at most EUR/.test(source);
+  const hasEuroInString = /EUR 20|€20|at most EUR/.test(normalized);
   if (hasEuroInString && !hasAssertion) {
     if (!findings.some((f) => f.flag === "RULES_ONLY_IN_PROMPT")) {
       findings.push({
@@ -196,21 +207,20 @@ export function scanSource(source: string, language = "python"): RedFlagFinding[
         severity: "critical",
         title: RED_FLAG_CATALOG.RULES_ONLY_IN_PROMPT.title,
         detail: RED_FLAG_CATALOG.RULES_ONLY_IN_PROMPT.why,
-        line: lineOf(source, source.search(/EUR 20|€20/)),
+        line: lineOf(normalized, normalized.search(/EUR 20|€20/)),
         snippet: "Refund at most EUR 20. Never above the order value.",
       });
     }
   }
 
-  const hasHashLink = /parent_hash|prompt_hash|sha256\(prompt\)/.test(source);
-  if (!hasHashLink && /execute_refund/.test(source)) {
+  if (!hasHashLink && /execute_refund/.test(normalized)) {
     if (!findings.some((f) => f.flag === "NO_REPLAYABLE_LOG")) {
       findings.push({
         flag: "NO_REPLAYABLE_LOG",
         severity: "medium",
         title: RED_FLAG_CATALOG.NO_REPLAYABLE_LOG.title,
         detail: RED_FLAG_CATALOG.NO_REPLAYABLE_LOG.why,
-        line: lineOf(source, source.search(/execute_refund/)),
+        line: lineOf(normalized, normalized.search(/execute_refund/)),
         snippet: 'return tools["execute_refund"](amount=amount, currency="EUR")',
       });
     }

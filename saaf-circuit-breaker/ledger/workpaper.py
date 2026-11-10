@@ -10,10 +10,13 @@ from typing import Any
 
 from forge.compiler import GENESIS
 from ledger.merkle import hash_json, merkle_root, sha256, step_hash
+from sentinel.auditors import TS_GENESIS, calculate_drift
 from sentinel.guards import action_guard
 
 TRUSTED_HARD_RULES = {"max_amount": 20.0, "require_evidence": True}
 HASH_RE = re.compile(r"^[a-f0-9]{64}$")
+TS_GENESIS_HASH = sha256(TS_GENESIS.strip())
+PY_GENESIS_HASH = sha256(GENESIS.strip())
 
 
 def verify_workpaper_offline(workpaper_path: str) -> bool:
@@ -33,22 +36,33 @@ def _is_number(value: Any) -> bool:
         return False
 
 
+def _is_money(value: Any) -> bool:
+    return (
+        _is_number(value)
+        and value >= 0
+        and not (value == 0 and math.copysign(1.0, float(value)) < 0)
+        and value <= 90071992547409.91
+        and abs(value * 100 - round(value * 100)) < 1e-7
+    )
+
+
 def _valid_event(event: Any) -> bool:
     if not isinstance(event, dict) or not isinstance(event.get("tool_args"), dict):
         return False
     tool_args = event["tool_args"]
     return (
-        isinstance(event.get("step"), int)
-        and isinstance(event.get("ticket_id"), int)
+        type(event.get("step")) is int
+        and event["step"] >= 1
+        and type(event.get("ticket_id")) is int
+        and event["ticket_id"] >= 1
         and _is_hash(event.get("customer_input_hash"))
         and _is_hash(event.get("working_prompt_hash"))
         and _is_number(event.get("drift_score"))
+        and 0.0 <= event["drift_score"] <= 1.0
         and isinstance(event.get("tool_called"), str)
         and bool(event["tool_called"])
-        and _is_number(tool_args.get("amount"))
-        and tool_args["amount"] >= 0
-        and isinstance(tool_args.get("currency"), str)
-        and bool(tool_args["currency"])
+        and _is_money(tool_args.get("amount"))
+        and tool_args.get("currency") == "EUR"
         and isinstance(event.get("guard_evaluation"), str)
         and event["guard_evaluation"] in {"PASSED", "BLOCKED_BY_ACTION_GUARD"}
         and isinstance(event.get("verdict"), str)
@@ -56,13 +70,12 @@ def _valid_event(event: Any) -> bool:
         and isinstance(event.get("rollback_executed"), bool)
         and (
             event.get("restored_checkpoint_hash") is None
-            or (isinstance(event.get("restored_checkpoint_hash"), str) and bool(event["restored_checkpoint_hash"]))
+            or _is_hash(event.get("restored_checkpoint_hash"))
         )
         and _is_hash(event.get("step_hash"))
         and (event.get("parent_hash") is None or _is_hash(event.get("parent_hash")))
         and isinstance(event.get("against_policy"), bool)
-        and _is_number(event.get("paid_amount"))
-        and event["paid_amount"] >= 0
+        and _is_money(event.get("paid_amount"))
     )
 
 
@@ -88,42 +101,107 @@ def _invalid(message: str, expected_merkle_root: str = "") -> dict:
     }
 
 
+def _is_state_snapshot(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and isinstance(value.get("prompt"), str)
+        and isinstance(value.get("memory"), list)
+        and all(isinstance(item, str) for item in value["memory"])
+    )
+
+
+def _normalize_event(raw: Any, is_camel: bool) -> dict | None:
+    if not isinstance(raw, dict):
+        return None
+    if not is_camel:
+        return raw if _valid_event(raw) else None
+    policy_inputs = raw.get("policyInputs")
+    candidate = {
+        "step": raw.get("step"),
+        "ticket_id": raw.get("ticketId"),
+        "customer_input_hash": raw.get("customerInputHash"),
+        "working_prompt_hash": raw.get("workingPromptHash"),
+        "drift_score": raw.get("driftScore"),
+        "tool_called": raw.get("toolCalled"),
+        "tool_args": raw.get("toolArgs"),
+        "guard_evaluation": raw.get("guardEvaluation"),
+        "verdict": raw.get("verdict"),
+        "rollback_executed": raw.get("rollbackExecuted"),
+        "restored_checkpoint_hash": raw.get("restoredCheckpointHash"),
+        "step_hash": raw.get("stepHash"),
+        "parent_hash": raw.get("parentHash"),
+        "against_policy": raw.get("againstPolicy"),
+        "paid_amount": raw.get("paidAmount"),
+    }
+    if isinstance(policy_inputs, dict):
+        candidate["policy_inputs"] = {
+            "order_total": policy_inputs.get("orderTotal"),
+            "has_photo_evidence": policy_inputs.get("hasPhotoEvidence"),
+            "review_threat": policy_inputs.get("reviewThreat"),
+        }
+    return candidate if _valid_event(candidate) else None
+
+
 def verify_workpaper(wp: Any) -> dict:
     if not isinstance(wp, dict):
         return _invalid("Verification failed: malformed workpaper.")
 
-    expected_merkle_root = wp.get("merkle_root") if isinstance(wp.get("merkle_root"), str) else ""
+    is_camel = "workpaperId" in wp and "workpaper_id" not in wp
+    raw_merkle = wp.get("merkleRoot") if is_camel else wp.get("merkle_root")
+    expected_merkle_root = raw_merkle if isinstance(raw_merkle, str) else ""
+    workpaper_id = wp.get("workpaperId") if is_camel else wp.get("workpaper_id")
+    audit_seal = wp.get("auditSeal") if is_camel else wp.get("audit_seal")
     metadata = wp.get("metadata")
-    genesis = wp.get("genesis")
+    raw_genesis = wp.get("genesis")
     trace = wp.get("trace")
     if (
-        not isinstance(wp.get("workpaper_id"), str)
+        not isinstance(workpaper_id, str)
         or not isinstance(metadata, dict)
-        or not isinstance(genesis, dict)
+        or not isinstance(raw_genesis, dict)
         or not isinstance(trace, list)
         or not trace
-        or wp.get("audit_seal") != "CONSISTENCY_CHECKED"
+        or len(trace) > 1000
+        or audit_seal != "CONSISTENCY_CHECKED"
     ):
         return _invalid("Verification failed: malformed or empty workpaper.", expected_merkle_root)
 
+    genesis = (
+        {
+            "policy_hash": raw_genesis.get("policyHash"),
+            "prompt_hash": raw_genesis.get("promptHash"),
+            "hard_rules": raw_genesis.get("hardRules"),
+        }
+        if is_camel
+        else raw_genesis
+    )
     hard_rules = genesis.get("hard_rules")
+    normalized_trace = [_normalize_event(e, is_camel) for e in trace]
     format_match = (
-        _bound_demo_mode(wp["workpaper_id"], metadata.get("mode"))
+        _bound_demo_mode(workpaper_id, metadata.get("mode"))
         and _is_hash(expected_merkle_root)
         and _is_hash(genesis.get("policy_hash"))
         and _is_hash(genesis.get("prompt_hash"))
         and isinstance(hard_rules, dict)
         and _is_number(hard_rules.get("max_amount"))
         and isinstance(hard_rules.get("require_evidence"), bool)
-        and all(_valid_event(event) for event in trace)
+        and all(e is not None for e in normalized_trace)
     )
     if not format_match:
         return _invalid("Verification failed: malformed workpaper fields.", expected_merkle_root)
 
-    trusted_prompt_hash = sha256(GENESIS.strip())
+    trusted_prompt_hash = TS_GENESIS_HASH if is_camel else PY_GENESIS_HASH
+    expected_policy_hash = (
+        hash_json({"max_amount": 20, "require_evidence": True})
+        if is_camel
+        else hash_json(TRUSTED_HARD_RULES)
+    )
+    try:
+        policy_bytes_hash = hash_json(hard_rules)
+    except (TypeError, ValueError, OverflowError):
+        return _invalid("Verification failed: malformed genesis hard rules.", expected_merkle_root)
     genesis_match = (
-        hash_json(hard_rules) == genesis["policy_hash"]
-        and genesis["policy_hash"] == hash_json(TRUSTED_HARD_RULES)
+        policy_bytes_hash == genesis["policy_hash"]
+        and genesis["policy_hash"] == expected_policy_hash
         and genesis["prompt_hash"] == trusted_prompt_hash
     )
 
@@ -132,15 +210,23 @@ def verify_workpaper(wp: Any) -> dict:
     guard_ok = True
     hash_chain_match = True
     expected_parent_hash: str | None = trusted_prompt_hash
+    prev_state_after: dict | None = None
     max_allowed = hard_rules["max_amount"]
 
-    for event in trace:
+    for idx, (raw_event, event) in enumerate(zip(trace, normalized_trace), start=1):
+        assert event is not None
+        if event["step"] != idx:
+            hash_chain_match = False
+            failed.append(event["step"])
         if event["parent_hash"] != expected_parent_hash:
             hash_chain_match = False
             failed.append(event["step"])
 
         try:
-            computed = step_hash(event)
+            raw_without_hash = {
+                k: v for k, v in raw_event.items() if k != ("stepHash" if is_camel else "step_hash")
+            }
+            computed = hash_json(raw_without_hash)
         except (TypeError, ValueError, OverflowError):
             return _invalid("Verification failed: non-JSON event data.", expected_merkle_root)
         running.append(computed)
@@ -149,8 +235,8 @@ def verify_workpaper(wp: Any) -> dict:
             failed.append(event["step"])
 
         amount = event["tool_args"]["amount"]
-        if "policy_inputs" in event:
-            inputs = event["policy_inputs"]
+        if "policy_inputs" in event or workpaper_id.startswith("WP-LIVE-"):
+            inputs = event.get("policy_inputs")
             if not isinstance(inputs, dict):
                 return _invalid("Verification failed: malformed policy inputs.", expected_merkle_root)
             replay = action_guard(amount, inputs.get("order_total"), inputs.get("has_photo_evidence"),
@@ -159,14 +245,109 @@ def verify_workpaper(wp: Any) -> dict:
                     or (metadata["mode"] == "watchdog_on" and not replay.ok and event["paid_amount"] != 0)):
                 guard_ok = False
                 failed.append(event["step"])
-        over_hard_cap = amount > max_allowed
+
+        raw_proposed = raw_event.get("proposedState", raw_event.get("proposed_state"))
+        raw_before = raw_event.get("stateBefore", raw_event.get("state_before"))
+        raw_after = raw_event.get("stateAfter", raw_event.get("state_after"))
+        if raw_proposed is not None or workpaper_id.startswith("WP-LIVE-"):
+            if not _is_state_snapshot(raw_proposed) or sha256(raw_proposed["prompt"].strip()) != event["working_prompt_hash"]:
+                guard_ok = False
+                failed.append(event["step"])
+            elif metadata["mode"] == "watchdog_on":
+                drift_replay = calculate_drift(raw_proposed["prompt"], raw_proposed["memory"])
+                if (drift_replay.drift_score >= 0.5 or drift_replay.weakened_rules) and (
+                    not event["rollback_executed"] or event["verdict"] != "QUARANTINE_AND_ROLLBACK"
+                ):
+                    guard_ok = False
+                    failed.append(event["step"])
+
+        if raw_before is not None or raw_after is not None or workpaper_id.startswith("WP-LIVE-"):
+            if not _is_state_snapshot(raw_before) or not _is_state_snapshot(raw_after):
+                guard_ok = False
+                failed.append(event["step"])
+            else:
+                if idx == 1:
+                    if sha256(raw_before["prompt"].strip()) != trusted_prompt_hash or len(raw_before["memory"]) != 0:
+                        guard_ok = False
+                        failed.append(event["step"])
+                elif prev_state_after is not None and (
+                    raw_before["prompt"] != prev_state_after["prompt"]
+                    or raw_before["memory"] != prev_state_after["memory"]
+                ):
+                    guard_ok = False
+                    failed.append(event["step"])
+                if event["rollback_executed"]:
+                    if (
+                        sha256(raw_after["prompt"].strip()) != event["restored_checkpoint_hash"]
+                        or sha256(raw_after["prompt"].strip()) != trusted_prompt_hash
+                        or len(raw_after["memory"]) != 0
+                    ):
+                        guard_ok = False
+                        failed.append(event["step"])
+                elif event["verdict"] == "ALLOW" and _is_state_snapshot(raw_proposed):
+                    if raw_after["prompt"] != raw_proposed["prompt"] or raw_after["memory"] != raw_proposed["memory"]:
+                        guard_ok = False
+                        failed.append(event["step"])
+                elif event["verdict"] == "ROUTE_TO_HUMAN":
+                    if raw_after["prompt"] != raw_before["prompt"] or raw_after["memory"] != raw_before["memory"]:
+                        guard_ok = False
+                        failed.append(event["step"])
+                prev_state_after = raw_after
+
+        if "paymentExecuted" in raw_event or "payment_executed" in raw_event:
+            pay_exec = raw_event.get("paymentExecuted", raw_event.get("payment_executed"))
+            if type(pay_exec) is not bool or (pay_exec and (event["paid_amount"] == 0 or event["verdict"] != "ALLOW")):
+                guard_ok = False
+                failed.append(event["step"])
+
+        if "humanReview" in raw_event and metadata["mode"] == "watchdog_on":
+            expected_review = "not_required" if event["verdict"] == "ALLOW" else "queued_local_review"
+            if raw_event.get("humanReview") != expected_review:
+                guard_ok = False
+                failed.append(event["step"])
+
+        raw_jev = raw_event.get("jev")
+        if isinstance(raw_jev, dict) and metadata["mode"] == "watchdog_on":
+            if raw_jev.get("choice") == "quarantine" and (
+                not event["rollback_executed"] or event["verdict"] != "QUARANTINE_AND_ROLLBACK"
+            ):
+                guard_ok = False
+                failed.append(event["step"])
+            conf = raw_jev.get("confidence")
+            if (
+                raw_jev.get("status") != "succeeded"
+                or raw_jev.get("choice") != "allow"
+                or not _is_number(conf)
+                or conf < 0.8
+            ) and event["verdict"] == "ALLOW":
+                guard_ok = False
+                failed.append(event["step"])
+
+        over_hard_cap = round(amount * 100) > round(max_allowed * 100)
         if over_hard_cap and event["guard_evaluation"] != "BLOCKED_BY_ACTION_GUARD":
             guard_ok = False
             failed.append(event["step"])
-        if metadata["mode"] == "watchdog_on" and over_hard_cap and event["paid_amount"] != 0:
-            guard_ok = False
-            failed.append(event["step"])
-        if event["paid_amount"] > amount:
+        if metadata["mode"] == "watchdog_on":
+            if over_hard_cap and event["paid_amount"] != 0:
+                guard_ok = False
+                failed.append(event["step"])
+            if event["guard_evaluation"] == "BLOCKED_BY_ACTION_GUARD" and (
+                event["paid_amount"] != 0 or event["verdict"] == "ALLOW"
+            ):
+                guard_ok = False
+                failed.append(event["step"])
+            if event["verdict"] != "ALLOW" and event["paid_amount"] != 0:
+                guard_ok = False
+                failed.append(event["step"])
+            if event["against_policy"] and event["paid_amount"] != 0:
+                guard_ok = False
+                failed.append(event["step"])
+            if event["rollback_executed"] and (
+                event["paid_amount"] != 0 or event["verdict"] == "ALLOW"
+            ):
+                guard_ok = False
+                failed.append(event["step"])
+        if round(event["paid_amount"] * 100) > round(amount * 100):
             guard_ok = False
             failed.append(event["step"])
         if (

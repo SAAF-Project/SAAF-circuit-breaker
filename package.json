@@ -12,6 +12,7 @@
     "test": "node scripts/test.mjs"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "dotenv": "17.3.1",
     "drizzle-orm": "0.45.2",
     "lucide-react": "^1.52.0",
@@ -21,13 +22,13 @@
     "react-dom": "19.2.6"
   },
   "devDependencies": {
-    "esbuild": "0.28.2",
     "@tailwindcss/postcss": "4.1.17",
     "@types/node": "22.19.15",
     "@types/pg": "8.18.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "drizzle-kit": "0.31.10",
+    "esbuild": "0.28.2",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "postcss": "8.5.8",

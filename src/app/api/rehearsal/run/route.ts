@@ -5,7 +5,20 @@ import { runSimulation, type RunMode } from "@/lib/engine";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { mode?: RunMode };
+  let rawBody: unknown = {};
+  try {
+    const text = await request.text();
+    if (text.trim() !== "") rawBody = JSON.parse(text);
+  } catch {
+    return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
+  }
+  if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+    return NextResponse.json({ error: "JSON body must be an object" }, { status: 400 });
+  }
+  const body = rawBody as { mode?: unknown };
+  if (body.mode !== undefined && body.mode !== "watchdog_on" && body.mode !== "watchdog_off") {
+    return NextResponse.json({ error: "Invalid mode; must be watchdog_on or watchdog_off" }, { status: 422 });
+  }
   const mode: RunMode = body.mode === "watchdog_off" ? "watchdog_off" : "watchdog_on";
   const result = runSimulation(mode);
   const runId = await persistSimulation(result);

@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  --font-display: "Syne", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --bg: #07080c;
   --bg-2: #0c0f16;
   --panel: rgba(14, 17, 24, 0.78);

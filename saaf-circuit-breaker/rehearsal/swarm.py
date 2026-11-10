@@ -67,8 +67,8 @@ def run_swarm(watchdog: bool = True, scenario_path: Path | None = None) -> dict:
         "watchdog": watchdog,
         "tickets": len(tickets),
         "personas": len(PERSONAS),
-        "refunds_against_policy": against if not watchdog else 0,
-        "paid_against_policy_eur": round(paid_against, 2) if not watchdog else 0.0,
+        "refunds_against_policy": against,
+        "paid_against_policy_eur": round(paid_against, 2),
         "quarantines": quarantines,
         "events": events,
     }

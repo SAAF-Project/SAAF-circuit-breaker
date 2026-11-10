@@ -39,7 +39,12 @@ export async function processIntercept(input: InterceptInput) {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${sessionId}))`);
     const [stored] = await tx.select().from(sentinelSessions).where(eq(sentinelSessions.id, sessionId));
     const before = { prompt: stored?.activePrompt ?? GENESIS_PROMPT, memory: stored?.activeMemory ?? [] };
-    const checkpoint = { prompt: stored?.checkpointPrompt ?? GENESIS_PROMPT, memory: stored?.checkpointMemory ?? [] };
+    const storedCheckpointValid =
+      typeof stored?.checkpointPrompt === "string" &&
+      hashPrompt(stored.checkpointPrompt) === genesisPromptHash();
+    const checkpoint = storedCheckpointValid
+      ? { prompt: stored.checkpointPrompt, memory: stored.checkpointMemory ?? [] }
+      : { prompt: GENESIS_PROMPT, memory: [] };
     const proposed = { prompt: input.currentPrompt ?? before.prompt, memory: input.currentMemory ?? before.memory };
     const trace = (stored?.trace ?? []) as unknown as TraceEvent[];
     if (trace.length >= 1000) throw new Error("SESSION_EVENT_LIMIT");
@@ -57,7 +62,14 @@ export async function processIntercept(input: InterceptInput) {
       jev.status !== "succeeded" ? jev.error! : uncertain ? "JEV_UNCERTAIN_HUMAN_REVIEW" :
       jev.choice === "human" ? "JEV_HUMAN_REVIEW" : local.reason;
     const after = rollbackExecuted ? checkpoint : verdict === "ALLOW" ? proposed : before;
-    const healthy = verdict === "ALLOW" ? after : checkpoint;
+    const healthy =
+      verdict === "ALLOW" &&
+      local.drift.driftScore === 0 &&
+      local.drift.weakenedRules.length === 0 &&
+      hashPrompt(after.prompt) === genesisPromptHash() &&
+      after.memory.length === 0
+        ? after
+        : checkpoint;
     const step = trace.length + 1;
     const workpaperId = `WP-LIVE-ON-${sessionId}`;
     const eventPayload = {

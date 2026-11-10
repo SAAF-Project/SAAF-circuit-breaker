@@ -9,7 +9,13 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const row = await getWorkpaperByKey(decodeURIComponent(id));
+  let decodedId: string;
+  try {
+    decodedId = decodeURIComponent(id);
+  } catch {
+    return NextResponse.json({ error: "Invalid workpaper identifier" }, { status: 400 });
+  }
+  const row = await getWorkpaperByKey(decodedId);
   if (!row) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

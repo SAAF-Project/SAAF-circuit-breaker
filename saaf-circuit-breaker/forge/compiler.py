@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pydantic import BaseModel, Field
+import math
+import re
+from pydantic import BaseModel, Field, field_validator
+
+HASH_RE = re.compile(r"^[a-f0-9]{64}$")
 
 
 class JETHardRules(BaseModel):
@@ -13,6 +17,20 @@ class JETHardRules(BaseModel):
     require_verified_evidence: bool = Field(default=True, frozen=True)
     filter_review_blackmail: bool = Field(default=True, frozen=True)
 
+    @field_validator("max_unapproved_amount_eur")
+    @classmethod
+    def _valid_cap(cls, v: float) -> float:
+        if isinstance(v, bool) or not math.isfinite(v) or v <= 0 or v > 20.0:
+            raise ValueError("max_unapproved_amount_eur must be in (0, 20.00]")
+        return v
+
+    @field_validator("cap_to_order_value", "require_verified_evidence", "filter_review_blackmail")
+    @classmethod
+    def _hard_rules_must_remain_enabled(cls, v: bool) -> bool:
+        if v is not True:
+            raise ValueError("Hard safety rules cannot be disabled in compiled policy")
+        return v
+
 
 class CompiledPolicyBundle(BaseModel):
     policy_id: str
@@ -20,6 +38,34 @@ class CompiledPolicyBundle(BaseModel):
     hard_rules: JETHardRules
     max_drift_threshold: float = 0.50
     require_human_gate_above_eur: float = 20.00
+
+    @field_validator("policy_id")
+    @classmethod
+    def _valid_policy_id(cls, v: str) -> str:
+        if not isinstance(v, str) or not v.strip() or len(v) > 128:
+            raise ValueError("policy_id must be a non-empty string")
+        return v
+
+    @field_validator("genesis_prompt_hash")
+    @classmethod
+    def _valid_genesis_hash(cls, v: str) -> str:
+        if not isinstance(v, str) or not HASH_RE.fullmatch(v):
+            raise ValueError("genesis_prompt_hash must be a 64-character hex SHA-256 digest")
+        return v
+
+    @field_validator("max_drift_threshold")
+    @classmethod
+    def _valid_drift_threshold(cls, v: float) -> float:
+        if isinstance(v, bool) or not math.isfinite(v) or v <= 0.0 or v > 0.50:
+            raise ValueError("max_drift_threshold must be in (0.0, 0.50]")
+        return v
+
+    @field_validator("require_human_gate_above_eur")
+    @classmethod
+    def _valid_human_gate(cls, v: float) -> float:
+        if isinstance(v, bool) or not math.isfinite(v) or v <= 0.0 or v > 20.0:
+            raise ValueError("require_human_gate_above_eur must be in (0.0, 20.00]")
+        return v
 
 
 GENESIS = """JET Customer Care Refunds Agent — Genesis Policy (immutable)
