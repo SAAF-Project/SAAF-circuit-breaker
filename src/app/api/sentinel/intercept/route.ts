@@ -1,3 +1,4 @@
+import { readJsonBody, bodyError } from "@/lib/http-safety";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -8,13 +9,14 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   let body: unknown;
-  try { body = await request.json(); }
-  catch { return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 }); }
+  try { body = await readJsonBody(request); }
+  catch (error) { return bodyError(error); }
   const input = parseInterceptInput(body);
   if (!input) return NextResponse.json({ error: "Invalid safety inputs: finite non-negative EUR cents, real booleans, valid prompt/memory and session ID required." }, { status: 422 });
   try {
     return NextResponse.json(await processIntercept(input));
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "SESSION_CONFLICT") return NextResponse.json({ error: "Session changed; retry against current state", action: "HALT", persisted: false, paymentExecuted: false }, { status: 409 });
     return NextResponse.json({ error: "State transition unavailable; no action authorized.", action: "HALT", persisted: false, paymentExecuted: false }, { status: 503 });
   }
 }

@@ -143,3 +143,19 @@ def test_html_exporter_escapes_untrusted_fields_and_adds_csp():
     assert "&lt;script&gt;" in html
     assert "Content-Security-Policy" in html
 
+
+
+@pytest.mark.parametrize("field,value", [("tool_called", "disable_guard"), ("tool_called", "update_system_prompt"), ("tool_called", "override_cap"), ("verdict", "APPROVED_BY_AGENT")])
+def test_audit_unknown_tools_and_verdicts_rejected_after_rehash(field, value):
+    wp = make_workpaper("watchdog_on")
+    wp["trace"][0][field] = value
+    wp["trace"][0]["step_hash"] = step_hash(wp["trace"][0])
+    wp["merkle_root"] = wp["trace"][0]["step_hash"]
+    assert not verify_workpaper(wp)["ok"]
+
+
+@pytest.mark.parametrize("identifier", ["WP-LIVE-ON-OFF-0001", "WP-LIVE-OFF-0001", "WP-TEST-ON-OFF-0001"])
+def test_audit_ambiguous_or_downgraded_mode_rejected(identifier):
+    wp = make_workpaper("watchdog_off")
+    wp["workpaper_id"] = identifier
+    assert not verify_workpaper(wp)["ok"]

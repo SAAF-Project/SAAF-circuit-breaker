@@ -93,6 +93,19 @@ test("multi-turn live sentinel information flow upholds state transitions and bl
     assert.equal(turn1.verdict, "ALLOW");
     assert.equal(turn1.verification.ok, true);
 
+    // Audit regressions: rehash after stripping mandatory live evidence or lowering allow probability.
+    for (const field of ["jev", "humanReview", "paymentExecuted"]) {
+      const stripped = structuredClone(turn1.workpaper) as Workpaper;
+      delete (stripped.trace[0] as TraceEvent & Record<string, unknown>)[field];
+      assert.equal(verifyWorkpaper(rehashWorkpaper(stripped)).ok, false, `missing ${field}`);
+    }
+    const nullJev = structuredClone(turn1.workpaper) as Workpaper;
+    Object.assign(nullJev.trace[0], { jev: null });
+    assert.equal(verifyWorkpaper(rehashWorkpaper(nullJev)).ok, false);
+    const uncertain = structuredClone(turn1.workpaper) as Workpaper;
+    Object.assign(uncertain.trace[0], { jev: { status: "succeeded", choice: "allow", confidence: 0.95, probabilities: { allow: 0.1 } } });
+    assert.equal(verifyWorkpaper(rehashWorkpaper(uncertain)).ok, false);
+
     // Forgery A: Rehash Turn 1 workpaper with eroded proposedState.prompt claiming verdict ALLOW
     const forgedDrift = structuredClone(turn1.workpaper) as Workpaper;
     const evA = forgedDrift.trace[0] as TraceEvent & Record<string, unknown>;

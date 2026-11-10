@@ -1,5 +1,7 @@
 # SAAF Circuit Breaker
 
+> **Security / deployment:** This is a single trusted-operator demo, not a multi-tenant payment service. Production now requires `SAAF_OPERATOR_PASSWORD` (>=24 characters) over HTTPS and fails closed without it. Demo records expire after 30 days during maintenance. See [security follow-up and validation](docs/security/FOLLOWUP.md) before deploying.
+
 **A refunds agent that talks itself out of its own policy — and the circuit breaker that catches it.**
 
 Built for [Agents Gone Rogue](https://luma.com/tag-saaf) · SAAF Project × Just Eat Takeaway.com × TAG · Amsterdam 2026.

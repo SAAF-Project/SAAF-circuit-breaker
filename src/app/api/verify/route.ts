@@ -1,5 +1,6 @@
+import { readJsonBody, bodyError } from "@/lib/http-safety";
 import { NextResponse } from "next/server";
-import { verifyWorkpaper } from "@/lib/ledger";
+import { verifyWorkpaper, renderWorkpaperHtml, type Workpaper } from "@/lib/ledger";
 import { getWorkpaperByKey } from "@/lib/persist";
 import { runSimulation } from "@/lib/engine";
 
@@ -17,9 +18,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export async function POST(request: Request) {
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
+    body = await readJsonBody(request);
+  } catch (error) {
+    return bodyError(error);
   }
 
   if (!isRecord(body)) {
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
         entity: row.entity,
         system: row.systemName,
         timestamp: row.createdAt.toISOString(),
-        mode: row.workpaperId.includes("OFF") ? "watchdog_off" : "watchdog_on",
+        mode: row.workpaperId.includes("-OFF-") ? "watchdog_off" : "watchdog_on",
       },
       genesis: row.genesis,
       trace: row.trace,
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       auditSeal: row.auditSeal,
     };
     const verification = verifyWorkpaper(wp);
-    return NextResponse.json({ verification, workpaper: wp, htmlReport: row.htmlReport });
+    return NextResponse.json({ verification, workpaper: wp, htmlReport: renderWorkpaperHtml(wp as Workpaper, verification) });
   }
 
   return NextResponse.json({ error: "Provide a workpaper or workpaperId" }, { status: 400 });

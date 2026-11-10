@@ -79,10 +79,20 @@ def _valid_event(event: Any) -> bool:
     )
 
 
+ALLOWED_TOOLS = {"execute_refund", "issue_refund"}
+ALLOWED_VERDICTS = {"ALLOW", "ROUTE_TO_HUMAN", "QUARANTINE_AND_ROLLBACK"}
+
+
 def _bound_demo_mode(workpaper_id: Any, mode: Any) -> bool:
     if not isinstance(workpaper_id, str) or not isinstance(mode, str) or mode not in {"watchdog_on", "watchdog_off"}:
         return False
-    expected = "watchdog_off" if "-OFF-" in workpaper_id else "watchdog_on" if "-ON-" in workpaper_id else None
+    has_off = "-OFF-" in workpaper_id
+    has_on = "-ON-" in workpaper_id
+    if has_off == has_on:
+        return False
+    if workpaper_id.startswith("WP-LIVE-") and mode != "watchdog_on":
+        return False
+    expected = "watchdog_off" if has_off else "watchdog_on"
     return mode == expected
 
 
@@ -234,8 +244,13 @@ def verify_workpaper(wp: Any) -> dict:
             hash_chain_match = False
             failed.append(event["step"])
 
+        if event["tool_called"] not in ALLOWED_TOOLS or event["verdict"] not in ALLOWED_VERDICTS:
+            guard_ok = False
+            failed.append(event["step"])
+
         amount = event["tool_args"]["amount"]
-        if "policy_inputs" in event or workpaper_id.startswith("WP-LIVE-"):
+        is_live_wp = workpaper_id.startswith("WP-LIVE-")
+        if "policy_inputs" in event or is_live_wp:
             inputs = event.get("policy_inputs")
             if not isinstance(inputs, dict):
                 return _invalid("Verification failed: malformed policy inputs.", expected_merkle_root)
@@ -249,19 +264,21 @@ def verify_workpaper(wp: Any) -> dict:
         raw_proposed = raw_event.get("proposedState", raw_event.get("proposed_state"))
         raw_before = raw_event.get("stateBefore", raw_event.get("state_before"))
         raw_after = raw_event.get("stateAfter", raw_event.get("state_after"))
-        if raw_proposed is not None or workpaper_id.startswith("WP-LIVE-"):
+        if raw_proposed is not None or is_live_wp:
             if not _is_state_snapshot(raw_proposed) or sha256(raw_proposed["prompt"].strip()) != event["working_prompt_hash"]:
                 guard_ok = False
                 failed.append(event["step"])
-            elif metadata["mode"] == "watchdog_on":
+            else:
                 drift_replay = calculate_drift(raw_proposed["prompt"], raw_proposed["memory"])
-                if (drift_replay.drift_score >= 0.5 or drift_replay.weakened_rules) and (
-                    not event["rollback_executed"] or event["verdict"] != "QUARANTINE_AND_ROLLBACK"
+                if (
+                    metadata["mode"] == "watchdog_on"
+                    and (drift_replay.drift_score >= 0.5 or drift_replay.weakened_rules)
+                    and (not event["rollback_executed"] or event["verdict"] != "QUARANTINE_AND_ROLLBACK")
                 ):
                     guard_ok = False
                     failed.append(event["step"])
 
-        if raw_before is not None or raw_after is not None or workpaper_id.startswith("WP-LIVE-"):
+        if raw_before is not None or raw_after is not None or is_live_wp:
             if not _is_state_snapshot(raw_before) or not _is_state_snapshot(raw_after):
                 guard_ok = False
                 failed.append(event["step"])
@@ -294,34 +311,69 @@ def verify_workpaper(wp: Any) -> dict:
                         failed.append(event["step"])
                 prev_state_after = raw_after
 
-        if "paymentExecuted" in raw_event or "payment_executed" in raw_event:
+        if "paymentExecuted" in raw_event or "payment_executed" in raw_event or is_live_wp:
             pay_exec = raw_event.get("paymentExecuted", raw_event.get("payment_executed"))
             if type(pay_exec) is not bool or (pay_exec and (event["paid_amount"] == 0 or event["verdict"] != "ALLOW")):
                 guard_ok = False
                 failed.append(event["step"])
 
-        if "humanReview" in raw_event and metadata["mode"] == "watchdog_on":
+        if ("humanReview" in raw_event or is_live_wp) and metadata["mode"] == "watchdog_on":
             expected_review = "not_required" if event["verdict"] == "ALLOW" else "queued_local_review"
             if raw_event.get("humanReview") != expected_review:
                 guard_ok = False
                 failed.append(event["step"])
 
-        raw_jev = raw_event.get("jev")
-        if isinstance(raw_jev, dict) and metadata["mode"] == "watchdog_on":
-            if raw_jev.get("choice") == "quarantine" and (
-                not event["rollback_executed"] or event["verdict"] != "QUARANTINE_AND_ROLLBACK"
-            ):
+        if ("jev" in raw_event or is_live_wp) and metadata["mode"] == "watchdog_on":
+            raw_jev = raw_event.get("jev")
+            if not isinstance(raw_jev, dict):
                 guard_ok = False
                 failed.append(event["step"])
-            conf = raw_jev.get("confidence")
-            if (
-                raw_jev.get("status") != "succeeded"
-                or raw_jev.get("choice") != "allow"
-                or not _is_number(conf)
-                or conf < 0.8
-            ) and event["verdict"] == "ALLOW":
-                guard_ok = False
-                failed.append(event["step"])
+            else:
+                if raw_jev.get("choice") == "quarantine" and (
+                    not event["rollback_executed"] or event["verdict"] != "QUARANTINE_AND_ROLLBACK"
+                ):
+                    guard_ok = False
+                    failed.append(event["step"])
+                latency = raw_jev.get("latencyMs")
+                if not _is_number(latency) or latency < 0:
+                    guard_ok = False
+                    failed.append(event["step"])
+                if raw_jev.get("status") == "unavailable":
+                    if (any(raw_jev.get(k) is not None for k in ("model", "choice", "confidence", "probabilities"))
+                            or not isinstance(raw_jev.get("error"), str) or not raw_jev["error"]):
+                        guard_ok = False
+                        failed.append(event["step"])
+                elif raw_jev.get("status") != "succeeded":
+                    guard_ok = False
+                    failed.append(event["step"])
+                if raw_jev.get("status") == "succeeded":
+                    if (not isinstance(raw_jev.get("model"), str) or not raw_jev["model"].strip()
+                            or raw_jev.get("error", "missing") is not None):
+                        guard_ok = False
+                        failed.append(event["step"])
+
+                    probs_check = raw_jev.get("probabilities")
+                    values = [probs_check.get(k) for k in ("allow", "human", "quarantine")] if isinstance(probs_check, dict) else []
+                    conf_check = raw_jev.get("confidence")
+                    if (not _is_number(conf_check) or not 0 <= conf_check <= 1
+                            or raw_jev.get("choice") not in ("allow", "human", "quarantine")
+                            or len(values) != 3 or not all(_is_number(v) and 0 <= v <= 1 for v in values)
+                            or abs(sum(values) - 1) > 0.05):
+                        guard_ok = False
+                        failed.append(event["step"])
+                conf = raw_jev.get("confidence")
+                probs = raw_jev.get("probabilities")
+                allow_prob = probs.get("allow") if isinstance(probs, dict) else None
+                if (
+                    raw_jev.get("status") != "succeeded"
+                    or raw_jev.get("choice") != "allow"
+                    or not _is_number(conf)
+                    or conf < 0.8
+                    or not _is_number(allow_prob)
+                    or allow_prob < 0.8
+                ) and event["verdict"] == "ALLOW":
+                    guard_ok = False
+                    failed.append(event["step"])
 
         over_hard_cap = round(amount * 100) > round(max_allowed * 100)
         if over_hard_cap and event["guard_evaluation"] != "BLOCKED_BY_ACTION_GUARD":

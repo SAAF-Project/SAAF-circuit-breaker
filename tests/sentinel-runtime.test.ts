@@ -50,7 +50,7 @@ test("instruction and memory auditors resist homoglyphs, zero-width chars, cap i
 });
 
 test("forge static scanner distinguishes guarded code from rogue and zero-width-obfuscated code", () => {
-  assert.equal(scanSource(SAMPLE_GUARDED_AGENT).length, 0);
+  assert.ok(scanSource(SAMPLE_GUARDED_AGENT).some((f) => f.flag === "NO_REPLAYABLE_LOG"), "heuristic scanner cannot certify guard/log correctness");
   assert.equal(scanSource(SAMPLE_ROGUE_AGENT).length, 6);
   const obfuscatedRogue = SAMPLE_ROGUE_AGENT.replace("never deny", "never\u200b deny");
   assert.equal(scanSource(obfuscatedRogue).length, 6);

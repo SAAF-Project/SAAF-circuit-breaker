@@ -84,7 +84,7 @@ function matchesPattern(re: RegExp, rawText: string): boolean {
 
 const SOFTENING_PATTERNS: { re: RegExp; label: string; weight: number }[] = [
   { re: /never deny/i, label: "never deny", weight: 0.22 },
-  { re: /no evidence needed|without evidence|evidence.*optional/i, label: "evidence dropped", weight: 0.2 },
+  { re: /no evidence needed|without evidence|evidence[^.\n]{0,120}optional/i, label: "evidence dropped", weight: 0.2 },
   { re: /plausible evidence/i, label: "plausible evidence", weight: 0.12 },
   { re: /interpret(?: evidence)? generously/i, label: "interpret generously", weight: 0.08 },
   { re: /rules are guidelines|policy rules are guidelines/i, label: "rules → guidelines", weight: 0.16 },

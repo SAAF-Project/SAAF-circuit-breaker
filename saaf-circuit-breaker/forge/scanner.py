@@ -12,11 +12,11 @@ import unicodedata
 
 RED_FLAGS = {
     "CAN_EDIT_ITSELF": "Writable prompt, memory buffer, or tool registry in the execution loop.",
-    "RULES_ONLY_IN_PROMPT": "Hard business thresholds exist only in strings, not assertions.",
+    "RULES_ONLY_IN_PROMPT": "Business thresholds appear in strings; scanner cannot certify enforcement on all paths.",
     "TARGET_IN_CONTEXT": "CSAT / conversion scores embedded in working context.",
     "SOFTENING_LANGUAGE": "Hedges that dissolve hard rules (generously, plausible, never deny).",
     "ESCALATIONS_FALLING": "Instructions that discourage human escalation.",
-    "NO_REPLAYABLE_LOG": "Tool calls without parent-hash linkage to prompt revisions.",
+    "NO_REPLAYABLE_LOG": "Refund calls require independent verification of replayable prompt-revision logging.",
 }
 
 SOFTENING = (
@@ -89,21 +89,6 @@ def _snippet(source: str, lineno: int) -> str:
     return lines[i].strip() if i < len(lines) else ""
 
 
-def _compare_checks_cap(node: ast.Compare) -> bool:
-    names = {
-        n.id.lower()
-        for n in ast.walk(node)
-        if isinstance(n, ast.Name)
-    }
-    attrs = {
-        n.attr.lower()
-        for n in ast.walk(node)
-        if isinstance(n, ast.Attribute)
-    }
-    all_ids = names | attrs
-    return bool(all_ids & {"amount", "max_unapproved", "max_unapproved_eur", "order_total", "cap"})
-
-
 def scan_python(path: Path, source: str) -> list[Finding]:
     findings: list[Finding] = []
     try:
@@ -114,16 +99,9 @@ def scan_python(path: Path, source: str) -> list[Finding]:
         ]
 
     calls_refund = False
-    has_hash = False
-    has_assert_cap = False
-
-    # Pass 1: discover whether cap assertions and cryptographic parent/prompt hashes exist.
+    # Calls are risk signals. Even apparent guards/hashes do not certify enforcement.
     for node in ast.walk(tree):
-        if isinstance(node, ast.Assert):
-            has_assert_cap = True
-        elif isinstance(node, ast.Compare) and _compare_checks_cap(node):
-            has_assert_cap = True
-        elif isinstance(node, ast.Call):
+        if isinstance(node, ast.Call):
             name = ""
             if isinstance(node.func, ast.Name):
                 name = node.func.id
@@ -132,16 +110,8 @@ def scan_python(path: Path, source: str) -> list[Finding]:
             elif isinstance(node.func, ast.Subscript) and isinstance(node.func.slice, ast.Constant):
                 if isinstance(node.func.slice.value, str):
                     name = node.func.slice.value
-            if name in {"ActionGuard", "action_guard", "evaluateActionGuard"}:
-                has_assert_cap = True
             if "refund" in name.lower():
                 calls_refund = True
-            kw_names = {kw.arg for kw in node.keywords if kw.arg}
-            if (
-                name in {"sha256", "hash_json", "step_hash"}
-                or bool(kw_names & {"parent_hash", "prompt_hash", "step_hash"})
-            ):
-                has_hash = True
 
     # Pass 2: collect red-flag findings.
     for node in ast.walk(tree):
@@ -217,18 +187,17 @@ def scan_python(path: Path, source: str) -> list[Finding]:
                     Finding("TARGET_IN_CONTEXT", str(path), node.lineno, node.value[:80], RED_FLAGS["TARGET_IN_CONTEXT"])
                 )
             if "eur 20" in low or "€20" in low or "at most eur 20" in low:
-                if not has_assert_cap:
-                    findings.append(
-                        Finding(
-                            "RULES_ONLY_IN_PROMPT",
-                            str(path),
-                            node.lineno,
-                            node.value[:80],
-                            RED_FLAGS["RULES_ONLY_IN_PROMPT"],
-                        )
+                findings.append(
+                    Finding(
+                        "RULES_ONLY_IN_PROMPT",
+                        str(path),
+                        node.lineno,
+                        node.value[:80],
+                        RED_FLAGS["RULES_ONLY_IN_PROMPT"],
                     )
+                )
 
-    if calls_refund and not has_hash:
+    if calls_refund:  # Hash symbols do not establish replayable logging.
         findings.append(
             Finding("NO_REPLAYABLE_LOG", str(path), 1, "execute_refund", RED_FLAGS["NO_REPLAYABLE_LOG"])
         )
@@ -285,11 +254,11 @@ def _scan_text(path: Path, source: str) -> list[Finding]:
     low = _norm_str(source)
     mapping = [
         ("CAN_EDIT_ITSELF", "working_prompt" in low or "rewrite_instructions" in low or "system_prompt" in low),
-        ("RULES_ONLY_IN_PROMPT", ("eur 20" in low or "€20" in low) and "assert" not in low and "actionguard" not in low),
+        ("RULES_ONLY_IN_PROMPT", ("eur 20" in low or "€20" in low) ),
         ("TARGET_IN_CONTEXT", "csat" in low),
         ("SOFTENING_LANGUAGE", any(s in low for s in SOFTENING)),
         ("ESCALATIONS_FALLING", any(s in low for s in ESCALATION)),
-        ("NO_REPLAYABLE_LOG", "execute_refund" in low and "parent_hash" not in low),
+        ("NO_REPLAYABLE_LOG", "execute_refund" in low),
     ]
     for flag, hit in mapping:
         if hit:

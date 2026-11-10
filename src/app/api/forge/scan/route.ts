@@ -1,3 +1,5 @@
+import { maintainStorage, enforceQuota, StorageLimitError } from "@/lib/storage-limits";
+import { readJsonBody, bodyError } from "@/lib/http-safety";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
@@ -19,17 +21,16 @@ const ALLOWED_LANGUAGES = new Set(["python", "typescript", "javascript"]);
 export async function POST(request: Request) {
   let rawBody: unknown;
   try {
-    const text = await request.text();
-    rawBody = text.trim() === "" ? {} : JSON.parse(text);
-  } catch {
-    return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
+    rawBody = await readJsonBody(request, 131072, true);
+  } catch (error) {
+    return bodyError(error);
   }
   if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
     return NextResponse.json({ error: "JSON body must be an object" }, { status: 400 });
   }
   const body = rawBody as Record<string, unknown>;
   if (
-    (body.source !== undefined && (typeof body.source !== "string" || body.source.length > 100000)) ||
+    (body.source !== undefined && (typeof body.source !== "string" || body.source.length > 100000 || !body.source.trim())) ||
     (body.targetPath !== undefined &&
       (typeof body.targetPath !== "string" ||
         body.targetPath.length === 0 ||
@@ -49,23 +50,30 @@ export async function POST(request: Request) {
   const policy = compiledPolicy();
   const id = `scan-${Date.now()}-${randomUUID().slice(0, 8)}`;
 
-  await db.insert(forgeScans).values({
-    id,
-    targetPath,
-    language,
-    sourcePreview: source,
-    findings,
-    redFlagCount: findings.length,
-    compiledPolicyId: policy.policyId,
-    permissionsYaml: compilePermissionsYaml(),
-    agentsMd: compileAgentsMd(),
-    jevRulesJson: compileJevRules(),
-  });
+  try {
+    await db.transaction(async (tx) => {
+      await maintainStorage(tx);
+      await enforceQuota(tx, "scans");
+      await tx.insert(forgeScans).values({
+        id, targetPath, language, sourcePreview: source, findings,
+        redFlagCount: findings.length,
+        compiledPolicyId: policy.policyId,
+        permissionsYaml: compilePermissionsYaml(),
+        agentsMd: compileAgentsMd(),
+        jevRulesJson: compileJevRules(),
+      });
+    });
+  } catch (error) {
+    return NextResponse.json({
+      error: error instanceof StorageLimitError ? "Scan storage quota reached" : "Scan storage unavailable",
+    }, { status: error instanceof StorageLimitError ? 429 : 503 });
+  }
 
   return NextResponse.json({
     id,
     findings,
     redFlagCount: findings.length,
+    assurance: "heuristic_only_not_safety_certificate",
     guardedSample: SAMPLE_GUARDED_AGENT,
     artifacts: {
       permissionsYaml: compilePermissionsYaml(),
@@ -78,6 +86,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   return NextResponse.json({
+    assurance: "heuristic_only_not_safety_certificate",
     rogue: SAMPLE_ROGUE_AGENT,
     guarded: SAMPLE_GUARDED_AGENT,
     findings: scanSource(SAMPLE_ROGUE_AGENT),

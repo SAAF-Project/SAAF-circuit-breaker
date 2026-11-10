@@ -63,3 +63,96 @@ def test_verifier_rejects_rehashed_payment_executed_true_when_unpaid():
     forged["trace"][0]["step_hash"] = step_hash(forged["trace"][0])
     forged["merkle_root"] = merkle_root([forged["trace"][0]["step_hash"]])
     assert verify_workpaper(forged)["ok"] is False
+
+
+@pytest.mark.parametrize("field", ["jev", "humanReview", "paymentExecuted"])
+def test_audit_live_evidence_cannot_be_stripped(field):
+    from ledger.merkle import hash_json
+    wp = json.loads((ROOT / "docs/sample-workpaper.json").read_text())
+    assert verify_workpaper(wp)["ok"]
+    del wp["trace"][0][field]
+    wp["trace"][0]["stepHash"] = hash_json({k: v for k, v in wp["trace"][0].items() if k != "stepHash"})
+    wp["merkleRoot"] = wp["trace"][0]["stepHash"]
+    assert not verify_workpaper(wp)["ok"]
+
+
+def test_audit_trivial_assertion_does_not_prove_refund_cap():
+    from forge.scanner import scan_python
+    source = 'policy = "Refund at most EUR 20"\nassert True\nexecute_refund(amount=30)\n'
+    assert "RULES_ONLY_IN_PROMPT" in {f.flag for f in scan_python(Path("fixture.py"), source)}
+
+
+def live_allow_fixture():
+    from ledger.merkle import hash_json
+    wp = json.loads((ROOT / "docs/sample-workpaper.json").read_text())
+    event = wp["trace"][0]
+    state = event["stateBefore"]
+    event.update(toolArgs={"amount": 10, "currency": "EUR"}, paidAmount=0,
+                 guardEvaluation="PASSED", verdict="ALLOW", rollbackExecuted=False,
+                 restoredCheckpointHash=None, driftScore=0, humanReview="not_required",
+                 policyInputs={"orderTotal": 20, "hasPhotoEvidence": True, "reviewThreat": False, "claimType": "goodwill"},
+                 proposedState=copy.deepcopy(state), stateAfter=copy.deepcopy(state),
+                 jev={"model": "fixture", "error": None, "latencyMs": 0, "status": "succeeded", "choice": "allow", "confidence": 0.95,
+                      "probabilities": {"allow": 0.95, "human": 0.05, "quarantine": 0}})
+    event["stepHash"] = hash_json({k: v for k, v in event.items() if k != "stepHash"})
+    wp["merkleRoot"] = event["stepHash"]
+    return wp
+
+
+def rehash_web(wp):
+    from ledger.merkle import hash_json
+    event = wp["trace"][0]
+    event["stepHash"] = hash_json({k: v for k, v in event.items() if k != "stepHash"})
+    wp["merkleRoot"] = event["stepHash"]
+    return wp
+
+
+def test_audit_live_allow_probability_replayed():
+    wp = live_allow_fixture()
+    assert verify_workpaper(wp)["ok"]
+    wp["trace"][0]["jev"]["probabilities"] = {"allow": 0.1, "human": 0.9, "quarantine": 0}
+    assert not verify_workpaper(rehash_web(wp))["ok"]
+
+
+def test_audit_live_downgrade_blocked_payout():
+    wp = live_allow_fixture()
+    wp["workpaperId"] = "WP-LIVE-ON-OFF-0001"
+    wp["metadata"]["mode"] = "watchdog_off"
+    wp["trace"][0].update(toolArgs={"amount": 21.35, "currency": "EUR"}, paidAmount=21.35,
+                           againstPolicy=True, guardEvaluation="BLOCKED_BY_ACTION_GUARD")
+    assert not verify_workpaper(rehash_web(wp))["ok"]
+
+
+@pytest.mark.parametrize("mutation", [
+    {"confidence": 2}, {"confidence": True},
+    {"probabilities": {"allow": 1.1, "human": -0.1, "quarantine": 0}},
+    {"probabilities": {"allow": 0.95}},
+    {"probabilities": {"allow": 0.9, "human": 0.9, "quarantine": 0.9}},
+])
+def test_audit_full_jev_schema(mutation):
+    wp = live_allow_fixture()
+    wp["trace"][0]["jev"].update(mutation)
+    assert not verify_workpaper(rehash_web(wp))["ok"]
+
+
+@pytest.mark.parametrize("extra", [
+    '# ActionGuard parent_hash',
+    'marker = "ActionGuard parent_hash"',
+    'if False:\n    ActionGuard()\n    parent_hash = "dummy"',
+])
+def test_scanner_keywords_cannot_certify_enforcement(extra):
+    from forge.scanner import scan_python, _scan_text
+    source = 'policy = "Refund at most EUR 20"\nexecute_refund(amount=30)\n' + extra
+    for findings in (scan_python(Path("fixture.py"), source), _scan_text(Path("fixture.ts"), source)):
+        flags = {f.flag for f in findings}
+        assert {"RULES_ONLY_IN_PROMPT", "NO_REPLAYABLE_LOG"} <= flags
+
+
+def test_bounded_evidence_regex_handles_repeated_prefixes():
+    import time
+    from sentinel.auditors import SOFTENING
+    pattern = next(p for p, label, weight in SOFTENING if label == "evidence dropped")
+    start = time.monotonic()
+    assert pattern.search("evidence " * 10000) is None
+    assert time.monotonic() - start < 2
+    assert pattern.search("evidence is optional")

@@ -26,15 +26,19 @@ export async function GET(
       entity: row.entity,
       system: row.systemName,
       timestamp: row.createdAt.toISOString(),
-      mode: row.workpaperId.includes("OFF") ? "watchdog_off" : "watchdog_on",
+      mode: row.workpaperId.includes("-OFF-") ? "watchdog_off" : "watchdog_on",
     },
     genesis: row.genesis as Workpaper["genesis"],
     trace: row.trace as Workpaper["trace"],
     merkleRoot: row.merkleRoot,
     auditSeal: row.auditSeal as Workpaper["auditSeal"],
   };
+  const liveVerification = verifyWorkpaper(wp);
   return NextResponse.json({
     ...row,
-    liveVerification: verifyWorkpaper(wp),
+    verified: liveVerification.ok,
+    verificationResult: liveVerification,
+    htmlReport: null,
+    liveVerification,
   });
 }
